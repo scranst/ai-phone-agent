@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-12-30T20:45:45.305970",
+  "phone": "7252878970",
+  "objective": "You are calling from Dr. Smith's dental office to remind the patient about their upcoming cleaning appointment scheduled for January 3rd at 2:30 PM. Confirm they can still make it, and if not, offer to reschedule.",
+  "context": {
+    "patient_name": "Scott",
+    "office_name": "Dr. Smith's Dental"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "I'm out of here. I'm out of here. I'm out of here. "
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_204543.wav",
+  "duration_seconds": 31.342411,
+  "modem": "SIM7600G-H"
+}

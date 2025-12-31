@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-12-30T19:17:07.645192",
+  "phone": "7252878970",
+  "objective": "Say hello and ask if they can hear you. When they respond, repeat back exactly what they said.",
+  "context": {},
+  "success": false,
+  "summary": "You said, \"100%, I absolutely said that.\"",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, can you hear me?"
+    },
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I can hear you. Is there anything else you'd like to discuss?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, can you hear"
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "I heard a beep. Please let me know if you can hear me clearly."
+    },
+    {
+      "role": "assistant",
+      "content": "I heard you say, \"ba.\" Is there anything specific you'd like to discuss?"
+    },
+    {
+      "role": "user",
+      "content": "Fine, can you hear me?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I can hear you. You said, \"Hi, can you hear me?\""
+    },
+    {
+      "role": "assistant",
+      "content": "I heard you say, \"I didn't say ba.\""
+    },
+    {
+      "role": "user",
+      "content": "I DIDN'T SAY BYE"
+    },
+    {
+      "role": "user",
+      "content": "How much wood would a woodchuck chuck if a woodchuck could chuck wood?"
+    },
+    {
+      "role": "assistant",
+      "content": "You said, \"How much wood would a woodchuck chuck if a woodchuck could chuck wood?\""
+    },
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "user",
+      "content": "100% I absolutely said that."
+    },
+    {
+      "role": "assistant",
+      "content": "You said, \"100%, I absolutely said that.\""
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_191706.wav",
+  "duration_seconds": 173.639253,
+  "modem": "SIM7600G-H"
+}

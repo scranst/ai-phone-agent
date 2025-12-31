@@ -1,0 +1,66 @@
+{
+  "timestamp": "2025-12-30T19:39:11.434381",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. When the person answers and says hello, introduce yourself. Then have a natural conversation with them - listen to what they say and respond appropriately. Don't rush to end the call. Just chat naturally and see how the conversation goes.",
+  "context": {},
+  "success": false,
+  "summary": "I'm here and ready to chat. How are you doing today?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "BUUUUUUUUUUUUUUUUUUUUUUUUU"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant calling. How are you today?"
+    },
+    {
+      "role": "user",
+      "content": "Boop, boop."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm doing well, thank you! I'm just making a test call to ensure everything is working smoothly. Is there anything you'd like to chat about while we're on the line?"
+    },
+    {
+      "role": "user",
+      "content": "Just wait until I say hello."
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, I apologize for that. Let's start over. Hello! This is Scott's AI assistant. How can I assist you today?"
+    },
+    {
+      "role": "user",
+      "content": "I didn't say-"
+    },
+    {
+      "role": "user",
+      "content": "I didn't say it."
+    },
+    {
+      "role": "user",
+      "content": "Hey, how are you? I didn't see any of that gold slip."
+    },
+    {
+      "role": "user",
+      "content": "Why are you listening?"
+    },
+    {
+      "role": "user",
+      "content": "What?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm here and ready to chat. How are you doing today?"
+    },
+    {
+      "role": "user",
+      "content": "Do you know anything about your code?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_193910.wav",
+  "duration_seconds": 44.663346,
+  "modem": "SIM7600G-H"
+}

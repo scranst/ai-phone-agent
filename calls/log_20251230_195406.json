@@ -1,0 +1,70 @@
+{
+  "timestamp": "2025-12-30T19:54:06.363676",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. Wait silently until the person says hello. Only after they greet you, introduce yourself briefly. Keep responses short.",
+  "context": {},
+  "success": false,
+  "summary": "Hello, this is Scott's AI assistant. I'm just making a test call. How can I assist you today?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant calling for a quick test. How can I assist you today?"
+    },
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How can I help you today?"
+    },
+    {
+      "role": "user",
+      "content": "Actually, I'd really like a pizza."
+    },
+    {
+      "role": "assistant",
+      "content": "I understand, but I'm unable to place orders. If there's anything else I can assist you with, please let me know."
+    },
+    {
+      "role": "user",
+      "content": "I'd really like to order a pizza."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I can't place orders. Is there anything else I can help you with?"
+    },
+    {
+      "role": "user",
+      "content": "How many times?"
+    },
+    {
+      "role": "user",
+      "content": "Well, how tall is Mount McKinley?"
+    },
+    {
+      "role": "assistant",
+      "content": "Mount McKinley, also known as Denali, is about 20,310 feet tall."
+    },
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How can I help you today?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How can I assist you today?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_195404.wav",
+  "duration_seconds": 65.213679,
+  "modem": "SIM7600G-H"
+}

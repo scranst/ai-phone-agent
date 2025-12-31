@@ -1,0 +1,60 @@
+[
+  {
+    "name": "Merit Electric",
+    "phone": "775-853-3444",
+    "address": "7785 White Fir, Reno, NV 89523",
+    "specialties": ["commercial", "industrial", "renewable"],
+    "website": "https://meritelectricreno.com/"
+  },
+  {
+    "name": "Western Electric Group, LLC",
+    "phone": "775-284-0371",
+    "address": "Reno/Sparks, NV",
+    "specialties": ["residential", "commercial", "solar"],
+    "website": "https://www.westernelectricgroup.net/"
+  },
+  {
+    "name": "Lakeview Electric LLC",
+    "phone": "775-291-2511",
+    "address": "Reno, NV",
+    "specialties": ["commercial", "residential"],
+    "notes": "30+ years experience",
+    "website": "https://lakeviewelectricllc.com/"
+  },
+  {
+    "name": "Burnett Electric",
+    "phone": "775-406-7117",
+    "address": "Reno, NV",
+    "specialties": ["commercial", "residential"],
+    "website": "https://burnettelectric.com/"
+  },
+  {
+    "name": "Dr. Shock Professional Electrical Services",
+    "phone": "775-626-9933",
+    "address": "59 Damonte Ranch Parkway, Suite B, Reno NV 89521",
+    "specialties": ["commercial", "residential"],
+    "website": "https://www.drshockelectric.com/"
+  },
+  {
+    "name": "Have Lights Will Travel",
+    "phone": "775-355-6301",
+    "address": "Reno/Las Vegas, NV",
+    "specialties": ["commercial", "residential"],
+    "notes": "40+ years experience",
+    "website": "https://www.havelights.com/"
+  },
+  {
+    "name": "Enhanced Electrical Services",
+    "phone": "775-830-2033",
+    "address": "Sparks/Reno, NV",
+    "specialties": ["commercial"],
+    "website": "https://enhancedelectrical.net/"
+  },
+  {
+    "name": "AJ Electric LLC",
+    "phone": "530-210-4656",
+    "address": "Reno-Sparks, NV",
+    "specialties": ["residential", "commercial"],
+    "notes": "Innovative contractor"
+  }
+]

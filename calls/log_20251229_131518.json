@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-12-29T13:15:18.186260",
+  "phone": "702-266-3865",
+  "objective": "Test call - say hello loudly and ask if they can hear you",
+  "context": {},
+  "success": false,
+  "summary": "I apologize for the volume. I'll speak louder. Can you hear me now?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello! This is an AI assistant calling on behalf of a customer. Can you hear me clearly?"
+    },
+    {
+      "role": "user",
+      "content": "you"
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize for the volume. I'll speak louder. Can you hear me now?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_131515.wav",
+  "duration_seconds": 83.310669
+}

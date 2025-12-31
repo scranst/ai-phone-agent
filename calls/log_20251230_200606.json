@@ -1,0 +1,66 @@
+{
+  "timestamp": "2025-12-30T20:06:06.580438",
+  "phone": "7252878970",
+  "objective": "You are calling a pizza place to order a large pepperoni pizza for delivery to 123 Main Street. Ask about the total price and estimated delivery time. Be friendly and natural.",
+  "context": {},
+  "success": false,
+  "summary": "I apologize for the confusion. Please let me know if there's anything else I can assist you with.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! I'd like to order a large pepperoni pizza for delivery, please. Could you tell me the total price and the estimated delivery time to 123 Main Street?"
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, I'll hold."
+    },
+    {
+      "role": "user",
+      "content": "What are you doing?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm currently on hold, waiting for the pizza place to provide the total price and estimated delivery time for the order."
+    },
+    {
+      "role": "user",
+      "content": "No need."
+    },
+    {
+      "role": "assistant",
+      "content": "Sure, I'm here."
+    },
+    {
+      "role": "user",
+      "content": "Paul."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, I'll hold."
+    },
+    {
+      "role": "user",
+      "content": "You are not on hold."
+    },
+    {
+      "role": "user",
+      "content": "Okay"
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize for the confusion. Please let me know if there's anything else I can assist you with."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_200605.wav",
+  "duration_seconds": 57.575212,
+  "modem": "SIM7600G-H"
+}

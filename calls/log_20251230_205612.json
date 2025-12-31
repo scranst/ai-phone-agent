@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T20:56:12.240794",
+  "phone": "7252878970",
+  "objective": "You are calling from Happy Paws Veterinary to remind the owner that their dog Max is due for his annual checkup and vaccines. Ask if they'd like to schedule an appointment. You have openings on Tuesday and Thursday this week.",
+  "context": {
+    "clinic_name": "Happy Paws Veterinary",
+    "pet_name": "Max"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_205610.wav",
+  "duration_seconds": 38.990958,
+  "modem": "SIM7600G-H"
+}

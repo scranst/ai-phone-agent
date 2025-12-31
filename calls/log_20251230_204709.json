@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T20:47:09.075418",
+  "phone": "7252878970",
+  "objective": "You are calling from Mario's Pizza to confirm a delivery order. The order is for 2 large pepperoni pizzas, a Caesar salad, and garlic bread. Total is $47.50. Confirm the delivery address is 123 Oak Street and estimated delivery time is 45 minutes.",
+  "context": {
+    "restaurant": "Mario's Pizza",
+    "order_total": "$47.50"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_204707.wav",
+  "duration_seconds": 67.059056,
+  "modem": "SIM7600G-H"
+}

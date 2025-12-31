@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-12-30T20:00:51.931494",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. Wait for the person to answer and say hello. Then introduce yourself once and have a natural conversation. Keep responses short.",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Is there anyone there?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_200041.wav",
+  "duration_seconds": 37.996076,
+  "modem": "SIM7600G-H"
+}

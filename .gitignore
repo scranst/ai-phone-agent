@@ -1,0 +1,14 @@
+# Environment
+.env
+venv/
+__pycache__/
+
+# OS
+.DS_Store
+
+# Call recordings (large files)
+calls/*.wav
+
+# IDE
+.vscode/
+.idea/

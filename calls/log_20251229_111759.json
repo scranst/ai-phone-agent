@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-12-29T11:17:59.999958",
+  "phone": "702-266-3865",
+  "objective": "Test call - just say hello and confirm you can hear the other person, then say goodbye",
+  "context": {
+    "name": "Scott"
+  },
+  "success": false,
+  "summary": "Hello, this is the AI assistant calling on behalf of Scott. I'm just calling to say hello and confirm I can hear you. Can you hear me?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is the AI assistant calling on behalf of Scott. I'm just calling to say hello and confirm I can hear you. Can you hear me?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_111758.wav",
+  "duration_seconds": 74.513129
+}

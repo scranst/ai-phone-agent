@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-12-30T21:17:14.814558",
+  "phone": "7252878970",
+  "objective": "You are a friendly customer service rep from a cable company. Ask if the customer is satisfied with their internet speed and if they'd like to hear about any current promotions.",
+  "context": {
+    "company": "FastNet Cable"
+  },
+  "success": false,
+  "summary": "We have options for higher speeds that might interest you. For example, we have a promotion for our high-speed package that offers up to 1 gigabit per second. Would you like more information on this or any other specific speed you're interested in?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Wacky Joe's Pizza"
+    },
+    {
+      "role": "user",
+      "content": "Alice you"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! This is [Your Name] from FastNet Cable. I'm calling to check if you're satisfied with your current internet speed and to let you know about any current promotions. Would you be interested in hearing about them?"
+    },
+    {
+      "role": "user",
+      "content": "Welcome, we step home."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm glad to hear that. Would you be interested in learning about our current promotions to see if there's an offer that might suit your needs even better?"
+    },
+    {
+      "role": "user",
+      "content": "I can't come out."
+    },
+    {
+      "role": "assistant",
+      "content": "We have a variety of promotions available, including discounts on faster internet packages and bundles with additional services. Would you like me to go over some of these offers in detail?"
+    },
+    {
+      "role": "user",
+      "content": "\u0401\u043b\u043a\u0438-\u043f\u0430\u043b\u043a\u0438."
+    },
+    {
+      "role": "assistant",
+      "content": "We have options for higher speeds that might interest you. For example, we have a promotion for our high-speed package that offers up to 1 gigabit per second. Would you like more information on this or any other specific speed you're interested in?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211713.wav",
+  "duration_seconds": 77.647677,
+  "modem": "SIM7600G-H"
+}

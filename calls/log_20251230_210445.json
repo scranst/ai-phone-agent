@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-30T21:04:45.310710",
+  "phone": "7252878970",
+  "objective": "You are calling from Sunshine Daycare to let the parent know their child had a great day today. Ask if they have any questions about next week's field trip to the zoo.",
+  "context": {
+    "daycare_name": "Sunshine Daycare"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_210443.wav",
+  "duration_seconds": 92.697302,
+  "modem": "SIM7600G-H"
+}

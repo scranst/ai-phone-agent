@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-12-30T20:04:33.871222",
+  "phone": "7252878970",
+  "objective": "You are calling on behalf of Scott to schedule an oil change for his 2019 Honda Civic. Ask about available times this week and pricing. Be polite and conversational.",
+  "context": {},
+  "success": false,
+  "summary": "Hello, I'm calling on behalf of Scott. He'd like to schedule an oil change for his 2019 Honda Civic. Could you tell me about available times this week and the pricing?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello."
+    },
+    {
+      "role": "user",
+      "content": "R.I.P."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, I'm calling on behalf of Scott. He'd like to schedule an oil change for his 2019 Honda Civic. Could you tell me about available times this week and the pricing?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_200432.wav",
+  "duration_seconds": 57.334635,
+  "modem": "SIM7600G-H"
+}

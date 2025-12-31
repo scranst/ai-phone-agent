@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-12-30T19:44:53.369633",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. When the person answers and says hello, introduce yourself briefly. Then have a natural back-and-forth conversation. Listen to what they say and respond appropriately. Don't rush to end the call.",
+  "context": {},
+  "success": false,
+  "summary": "Alright, no problem at all. Was there anything else you wanted to discuss or ask about? I'm here to help with anything you need.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How are you today?"
+    },
+    {
+      "role": "user",
+      "content": "B O O M"
+    },
+    {
+      "role": "user",
+      "content": "Hey, can you hear me?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I can hear you clearly. Can you hear me okay?"
+    },
+    {
+      "role": "user",
+      "content": "Can you tell me what Nietzsche's idea of the ubermensch is?"
+    },
+    {
+      "role": "assistant",
+      "content": "Sure, Nietzsche's concept of the \u00dcbermensch, often translated as \"Overman\" or \"Superman,\" refers to an individual who has overcome the constraints of conventional morality to create his own values and purpose. It's a central idea in Nietzsche's philosophy, representing a goal for humanity to strive towards, embodying creativity, strength, and self-mastery. Does that help clarify it for you?"
+    },
+    {
+      "role": "user",
+      "content": "I don't even know anymore."
+    },
+    {
+      "role": "assistant",
+      "content": "Alright, no problem at all. Was there anything else you wanted to discuss or ask about? I'm here to help with anything you need."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_194451.wav",
+  "duration_seconds": 86.062706,
+  "modem": "SIM7600G-H"
+}

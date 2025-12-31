@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-12-29T11:38:57.377852",
+  "phone": "702-266-3865",
+  "objective": "Test call - say hello loudly and ask if they can hear you",
+  "context": {
+    "name": "Scott"
+  },
+  "success": true,
+  "summary": "Great! I'm glad you can hear me. I'll let Scott know. Thank you for your time. Goodbye! OBJECTIVE_COMPLETE",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello! This is a call on behalf of Scott. Can you hear me alright?"
+    },
+    {
+      "role": "user",
+      "content": "you"
+    },
+    {
+      "role": "assistant",
+      "content": "I\u2019m sorry, but I couldn\u2019t hear you. Can you hear me now?"
+    },
+    {
+      "role": "user",
+      "content": "Allo!"
+    },
+    {
+      "role": "user",
+      "content": "This is a call on behalf of Scott."
+    },
+    {
+      "role": "user",
+      "content": "Can you hear me alright?"
+    },
+    {
+      "role": "user",
+      "content": "I'm sorry, but I couldn't hear you."
+    },
+    {
+      "role": "user",
+      "content": "Can you hear me now?"
+    },
+    {
+      "role": "assistant",
+      "content": "Great! I'm glad you can hear me. I'll let Scott know. Thank you for your time. Goodbye! OBJECTIVE_COMPLETE"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_113853.wav",
+  "duration_seconds": 56.131887
+}

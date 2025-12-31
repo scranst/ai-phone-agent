@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-12-30T19:33:33.954021",
+  "phone": "7252878970",
+  "objective": "You are calling on behalf of Scott to test the phone system. When the person answers and says hello, introduce yourself and have a brief conversation to confirm the audio is working well in both directions.",
+  "context": {},
+  "success": true,
+  "summary": "That's excellent to hear. It seems like the phone system is working well in both directions. Thank you for your time, and have a great day! OBJECTIVE_COMPLETE",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is the AI assistant calling on behalf of Scott. I'm just testing the phone system. Can you hear me clearly?"
+    },
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "user",
+      "content": "Yeah, I can hear you just fine."
+    },
+    {
+      "role": "assistant",
+      "content": "Great, I'm glad to hear that. Could you let me know if my audio is clear on your end as well?"
+    },
+    {
+      "role": "user",
+      "content": "The audio sounds great!"
+    },
+    {
+      "role": "assistant",
+      "content": "That's excellent to hear. It seems like the phone system is working well in both directions. Thank you for your time, and have a great day! OBJECTIVE_COMPLETE"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_193332.wav",
+  "duration_seconds": 42.882527,
+  "modem": "SIM7600G-H"
+}

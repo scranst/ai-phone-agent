@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T23:22:28.573170",
+  "phone": "7252878970",
+  "objective": "You are calling from Green Thumb Garden Center. A customer ordered 3 bags of mulch and they are ready for pickup. Ask if they want help loading it into their car.",
+  "context": {
+    "store": "Green Thumb Garden Center",
+    "order": "3 bags of mulch"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_232227.wav",
+  "duration_seconds": 24.417624,
+  "modem": "SIM7600G-H"
+}

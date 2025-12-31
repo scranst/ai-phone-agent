@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-12-29T11:05:59.986337",
+  "phone": "702-266-3865",
+  "objective": "Test call - just say hello and confirm you can hear me, then hang up",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_110549.wav",
+  "duration_seconds": 52.5544
+}

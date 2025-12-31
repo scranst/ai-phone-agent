@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-12-30T19:37:26.522054",
+  "phone": "2283430054",
+  "objective": "You are calling to test the phone system. When someone answers and says hello, introduce yourself and ask if they can hear you. Listen for their response and confirm what they said.",
+  "context": {},
+  "success": false,
+  "summary": "Oh, I apologize for the confusion. Was there anything else you needed?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is an automated system calling to test the phone line. Can you hear me clearly?"
+    },
+    {
+      "role": "user",
+      "content": "Yeah, I guess I can hear you okay"
+    },
+    {
+      "role": "assistant",
+      "content": "Great, thank you for confirming. I'll end the call now. Have a nice day! OBJECTIVE_COMPLETE"
+    },
+    {
+      "role": "user",
+      "content": "Don't end the call."
+    },
+    {
+      "role": "user",
+      "content": "It... ... ... No! Don't..."
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, I apologize for the confusion. Was there anything else you needed?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_193725.wav",
+  "duration_seconds": 40.222742,
+  "modem": "SIM7600G-H"
+}

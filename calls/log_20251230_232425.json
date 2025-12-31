@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-12-30T23:24:25.095906",
+  "phone": "7252878970",
+  "objective": "You are calling from Sunny Day Cleaners. The customer's dry cleaning is ready - 2 suits and 3 shirts. Total is 35 dollars. Ask when they can pick it up.",
+  "context": {
+    "store": "Sunny Day Cleaners",
+    "items": "2 suits and 3 shirts",
+    "total": "$35"
+  },
+  "success": false,
+  "summary": "I don't have any information about pants being ready, just the 2 suits and 3 shirts. Would you like me to check on the pants for you?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Sunny Day Cleaners calling. I wanted to let you know that your dry cleaning is ready for pickup. You have 2 suits and 3 shirts, and the total comes to $35. When would be a good time for you to pick them up?"
+    },
+    {
+      "role": "user",
+      "content": "Can I get the pants too?"
+    },
+    {
+      "role": "assistant",
+      "content": "I don't have any information about pants being ready, just the 2 suits and 3 shirts. Would you like me to check on the pants for you?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_232423.wav",
+  "duration_seconds": 68.954028,
+  "modem": "SIM7600G-H"
+}

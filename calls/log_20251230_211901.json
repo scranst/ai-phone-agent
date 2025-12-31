@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-12-30T21:19:01.447872",
+  "phone": "7252878970",
+  "objective": "You are calling from Speedy Tire Shop. The customer's tires are ready for pickup. Just say hello and confirm they ordered new tires.",
+  "context": {
+    "shop": "Speedy Tire Shop"
+  },
+  "success": false,
+  "summary": "I apologize for the mistake. It seems I have the wrong contact. Thank you for your time. Goodbye.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is Speedy Tire Shop calling. I'm just confirming, did you order new tires with us?"
+    },
+    {
+      "role": "user",
+      "content": "This is Commander's Palace."
+    },
+    {
+      "role": "assistant",
+      "content": "My apologies for the confusion. It seems I may have the wrong number. Thank you for your time, and have a good day. Goodbye."
+    },
+    {
+      "role": "user",
+      "content": "What tires are they?"
+    },
+    {
+      "role": "user",
+      "content": "What kind of"
+    },
+    {
+      "role": "assistant",
+      "content": "Sorry about the confusion earlier. I'm calling from Speedy Tire Shop to let you know your new tires are ready for pickup. Did you order new tires with us?"
+    },
+    {
+      "role": "user",
+      "content": "Set."
+    },
+    {
+      "role": "user",
+      "content": "No!"
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize for the mistake. It seems I have the wrong contact. Thank you for your time. Goodbye."
+    },
+    {
+      "role": "user",
+      "content": "But what size are they?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211851.wav",
+  "duration_seconds": 77.725807,
+  "modem": "SIM7600G-H"
+}

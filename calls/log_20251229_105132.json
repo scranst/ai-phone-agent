@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-29T10:51:32.908220",
+  "phone": "702-266-3865",
+  "objective": "we need 2 dropsdowns and 1 electrical outlet installed",
+  "context": {
+    "Name": "Scott"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_105122.wav",
+  "duration_seconds": 65.848533
+}

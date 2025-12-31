@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-12-29T13:16:23.653308",
+  "phone": "702-266-3865",
+  "objective": "Test call - say hello loudly and ask if they can hear you",
+  "context": {},
+  "success": false,
+  "summary": "Hello! Can you hear me?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello! Can you hear me?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251229_131620.wav",
+  "duration_seconds": 54.121844
+}

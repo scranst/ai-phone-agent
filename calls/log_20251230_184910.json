@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-12-30T18:49:10.186564",
+  "phone": "2283430054",
+  "objective": "Say hello, confirm this is a test call, and verify you can hear the person on the line. Ask them to say something so you can confirm audio is working both ways.",
+  "context": {},
+  "success": false,
+  "summary": "I heard you clearly. Thank you. It looks like the audio is working fine on your end. Is there anything else you'd like to test or discuss?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Please."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is a test call. I'd like to verify that I can hear you clearly. Could you please say something so I can confirm the audio is working both ways?"
+    },
+    {
+      "role": "user",
+      "content": "seat. "
+    },
+    {
+      "role": "user",
+      "content": "Hello? This is a test call. I'd like to get a reply that I can hear you clearly."
+    },
+    {
+      "role": "assistant",
+      "content": "I heard you clearly. Thank you. It looks like the audio is working fine on your end. Is there anything else you'd like to test or discuss?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_184908.wav",
+  "duration_seconds": 51.414423,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-12-30T21:10:30.068181",
+  "phone": "7252878970",
+  "objective": "You're calling from the pizza shop to confirm an order is ready for pickup.",
+  "context": {
+    "shop": "Pizza Palace"
+  },
+  "success": false,
+  "summary": "I can only assist with matters related to your pizza order pickup. If you have any other questions or need further assistance with that, please let me know. Otherwise, have a great day.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "I will."
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Pizza Palace calling to let you know your order is ready for pickup."
+    },
+    {
+      "role": "user",
+      "content": "Oh great, what kind of pizza did I order?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I don't have the details of the order. I'm just calling to inform you that it's ready for pickup."
+    },
+    {
+      "role": "user",
+      "content": "What's ready for pickup?"
+    },
+    {
+      "role": "assistant",
+      "content": "Your pizza order is ready for pickup at Pizza Palace."
+    },
+    {
+      "role": "user",
+      "content": "How do you know I ordered a pizza?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm calling from Pizza Palace to let you know an order under your name is ready for pickup. If you didn't place an order, it might be a mix-up. Would you like me to verify any details?"
+    },
+    {
+      "role": "user",
+      "content": "No, can you tell me the plot?"
+    },
+    {
+      "role": "user",
+      "content": "of the movie The Green Mile."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I don't have information on the price. I'm just calling to inform you that the order is ready for pickup. If you have any other questions, feel free to ask."
+    },
+    {
+      "role": "user",
+      "content": "Yeah, can you explain the plot?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm here to let you know your pizza order is ready for pickup. If you have any questions about the order, I recommend contacting the shop directly. Is there anything else I can assist you with today?"
+    },
+    {
+      "role": "user",
+      "content": "of the movie The Green Mile."
+    },
+    {
+      "role": "assistant",
+      "content": "I can only assist with matters related to your pizza order pickup. If you have any other questions or need further assistance with that, please let me know. Otherwise, have a great day."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211028.wav",
+  "duration_seconds": 108.686328,
+  "modem": "SIM7600G-H"
+}

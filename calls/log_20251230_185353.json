@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-12-30T18:53:53.167907",
+  "phone": "7252878970",
+  "objective": "Say hello, this is a test call. Ask the person if they can hear you clearly, and wait for their response to confirm you can hear them.",
+  "context": {},
+  "success": false,
+  "summary": "Hello, this is a test call. Can you hear me clearly?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is a test call. Can you hear me clearly?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_185351.wav",
+  "duration_seconds": 30.67122,
+  "modem": "SIM7600G-H"
+}

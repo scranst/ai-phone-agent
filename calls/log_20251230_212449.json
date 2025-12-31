@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T21:24:49.478250",
+  "phone": "7252878970",
+  "objective": "You are calling from Happy Paws Veterinary Clinic. The customer's dog Max is due for his annual checkup and vaccinations. Ask what day works best for them this week.",
+  "context": {
+    "clinic": "Happy Paws Veterinary Clinic",
+    "pet": "Max the dog"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_212448.wav",
+  "duration_seconds": 30.528263,
+  "modem": "SIM7600G-H"
+}

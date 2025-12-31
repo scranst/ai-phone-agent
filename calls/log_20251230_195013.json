@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-12-30T19:50:13.369763",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. Wait silently until the person answers and says hello. Only after they greet you, introduce yourself briefly. Keep responses short.",
+  "context": {},
+  "success": false,
+  "summary": "Postmodernism is a broad movement that developed in the mid-20th century, encompassing a range of ideas in art, architecture, literature, and more. It often questions traditional boundaries, embraces paradox, and focuses on the subjective experience. If you'd like more information or have specific questions, feel free to ask.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Is anyone there?"
+    },
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How can I assist you today?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I can hear you clearly. Is there anything specific you'd like assistance with?"
+    },
+    {
+      "role": "user",
+      "content": "Are you actually there? Can you hear me?"
+    },
+    {
+      "role": "user",
+      "content": "Modernism to me."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I didn't catch that. Could you say that again, please?"
+    },
+    {
+      "role": "user",
+      "content": "Can you explain post-modernism to me?"
+    },
+    {
+      "role": "assistant",
+      "content": "Postmodernism is a broad movement that developed in the mid-20th century, encompassing a range of ideas in art, architecture, literature, and more. It often questions traditional boundaries, embraces paradox, and focuses on the subjective experience. If you'd like more information or have specific questions, feel free to ask."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_195012.wav",
+  "duration_seconds": 78.723301,
+  "modem": "SIM7600G-H"
+}

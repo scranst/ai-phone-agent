@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-12-30T21:13:59.957656",
+  "phone": "7252878970",
+  "objective": "You are a realtor calling about a house showing. The property at 456 Maple Lane is available for viewing tomorrow at 2pm. Ask if that time works or if they'd prefer a different slot.",
+  "context": {
+    "agency": "Sunset Realty",
+    "property": "456 Maple Lane"
+  },
+  "success": false,
+  "summary": "Hi, this is [Your Name] calling from Sunset Realty. I wanted to check in about the property at 456 Maple Lane. It's available for a viewing tomorrow at 2pm. Does that time work for you, or would you prefer a different slot?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hi, this is [Your Name] calling from Sunset Realty. I wanted to check in about the property at 456 Maple Lane. It's available for a viewing tomorrow at 2pm. Does that time work for you, or would you prefer a different slot?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211358.wav",
+  "duration_seconds": 54.94386,
+  "modem": "SIM7600G-H"
+}

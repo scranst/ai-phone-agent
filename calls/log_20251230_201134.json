@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-12-30T20:11:34.725961",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a quick test call. When you hear hello, introduce yourself and ask how they're doing.",
+  "context": {},
+  "success": false,
+  "summary": "Alright, I'll hold.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "BEEP"
+    },
+    {
+      "role": "user",
+      "content": "BOOBOOBOOBOOBOOBOOBOOBOOM"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant calling. How are you doing today?"
+    },
+    {
+      "role": "user",
+      "content": "It couldn't have stopped?"
+    },
+    {
+      "role": "assistant",
+      "content": "Alright, I'll hold."
+    },
+    {
+      "role": "user",
+      "content": "I didn't use a hold or anything. I said, how are you?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_201133.wav",
+  "duration_seconds": 31.467458,
+  "modem": "SIM7600G-H"
+}

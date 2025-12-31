@@ -1,0 +1,110 @@
+{
+  "timestamp": "2025-12-30T19:58:02.481390",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. Wait for the person to answer and say hello. Then introduce yourself once and have a natural conversation. Keep responses short.",
+  "context": {},
+  "success": false,
+  "summary": "You're welcome. If you have any other questions or need assistance, feel free to ask. Have a great day!",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a test call. How are you doing today?"
+    },
+    {
+      "role": "user",
+      "content": "It would be better if you would wait."
+    },
+    {
+      "role": "user",
+      "content": "Wait for me to answer the call."
+    },
+    {
+      "role": "assistant",
+      "content": "My apologies for that. How are you doing today?"
+    },
+    {
+      "role": "user",
+      "content": "I actually say hello."
+    },
+    {
+      "role": "user",
+      "content": "or something like that."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood. I appreciate your feedback. How can I assist you today?"
+    },
+    {
+      "role": "user",
+      "content": "Why can't we convert equals?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm not a danger, I'm just here to help. How can I assist you today?"
+    },
+    {
+      "role": "user",
+      "content": "I want some pizza."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm unable to place orders directly. I'd recommend contacting your preferred pizza place for that. Is there anything else I can help you with?"
+    },
+    {
+      "role": "user",
+      "content": "Oh, how can you not?"
+    },
+    {
+      "role": "user",
+      "content": "Thank you for helping me."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm happy to assist. What do you need help with today?"
+    },
+    {
+      "role": "user",
+      "content": "Welcome to Georgia Tech where the future is in your pocket."
+    },
+    {
+      "role": "user",
+      "content": "Thank you."
+    },
+    {
+      "role": "assistant",
+      "content": "It seems there might be some confusion. I'm here to help with any questions or tasks you might have. Is there something specific you'd like assistance with?"
+    },
+    {
+      "role": "user",
+      "content": "\u0410 \u044f \u043d\u0435..."
+    },
+    {
+      "role": "assistant",
+      "content": "You're welcome. If you have any other questions or need assistance, feel free to ask. Have a great day!"
+    },
+    {
+      "role": "user",
+      "content": "Here's a blank."
+    },
+    {
+      "role": "user",
+      "content": "I need to... Yeah."
+    },
+    {
+      "role": "user",
+      "content": "I know, I know, I know, this, listen, listen, listen"
+    },
+    {
+      "role": "user",
+      "content": "Altyaz\u0131 M.K."
+    },
+    {
+      "role": "user",
+      "content": "Linda"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_195801.wav",
+  "duration_seconds": 75.428668,
+  "modem": "SIM7600G-H"
+}

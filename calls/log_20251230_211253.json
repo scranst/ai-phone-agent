@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T21:12:53.241149",
+  "phone": "7252878970",
+  "objective": "You are calling from Green Valley Medical Center to remind the patient about their upcoming MRI appointment this Friday at 9:15 AM. Ask them to arrive 15 minutes early and remind them not to eat anything 4 hours before the scan.",
+  "context": {
+    "facility": "Green Valley Medical Center",
+    "appointment": "MRI scan"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211251.wav",
+  "duration_seconds": 31.210124,
+  "modem": "SIM7600G-H"
+}

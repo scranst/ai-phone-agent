@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-12-30T20:09:55.481784",
+  "phone": "7252878970",
+  "objective": "You are Scott's AI assistant making a test call. When you hear the person answer, introduce yourself and ask how they're doing. Be friendly and conversational.",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_200954.wav",
+  "duration_seconds": 19.232813,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-12-30T20:08:34.845243",
+  "phone": "7252878970",
+  "objective": "You are calling a doctor's office to schedule a checkup appointment for Scott Stevenson. Ask what dates are available next week and confirm the appointment. Be polite.",
+  "context": {},
+  "success": false,
+  "summary": "Thank you for clarifying. I'll go ahead and schedule the appointment for March 4th. Is there a specific time available on that day?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Farewell."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is an AI assistant calling on behalf of Scott Stevenson. I'd like to schedule a checkup appointment for him. Could you tell me what dates are available next week?"
+    },
+    {
+      "role": "user",
+      "content": "available next week."
+    },
+    {
+      "role": "assistant",
+      "content": "Thank you. I'll wait for you to check the schedule."
+    },
+    {
+      "role": "user",
+      "content": "Like I just said, we don't have anything available next week. Best I can do is three months from now, but first I need their insurance information."
+    },
+    {
+      "role": "assistant",
+      "content": "I understand the earliest available appointment is three months from now. I'll make sure to have Scott's insurance information ready. Could you tell me what date exactly is available?"
+    },
+    {
+      "role": "user",
+      "content": "It's there."
+    },
+    {
+      "role": "user",
+      "content": "\u0412\u043e\u0442."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, I'll hold."
+    },
+    {
+      "role": "user",
+      "content": "I think you didn't hear what I said."
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize, I didn't catch that. Could you please repeat the information?"
+    },
+    {
+      "role": "user",
+      "content": "You're too busy talking"
+    },
+    {
+      "role": "assistant",
+      "content": "Thank you for confirming. I'll make sure to have Scott's insurance information ready for the appointment. Could you let me know the exact date available three months from now?"
+    },
+    {
+      "role": "user",
+      "content": "I already told you it's March 4th."
+    },
+    {
+      "role": "assistant",
+      "content": "Thank you for clarifying. I'll go ahead and schedule the appointment for March 4th. Is there a specific time available on that day?"
+    },
+    {
+      "role": "user",
+      "content": "I can't schedule it until I have your entrance information."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_200824.wav",
+  "duration_seconds": 129.173716,
+  "modem": "SIM7600G-H"
+}

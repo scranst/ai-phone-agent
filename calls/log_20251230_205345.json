@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-12-30T20:53:45.145969",
+  "phone": "7252878970",
+  "objective": "You are calling from City Library to let the patron know their reserved book 'The Great Gatsby' is ready for pickup. It will be held for 7 days. Ask if they need the library hours.",
+  "context": {
+    "library_name": "City Library"
+  },
+  "success": false,
+  "summary": "I apologize for the delay. As I mentioned, 'The Great Gatsby' is ready for pickup at City Library, and it will be held for you for 7 days. Would you like to know the library hours?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello, is there anyone there?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is the City Library calling. I'm calling to let you know that your reserved book, 'The Great Gatsby,' is ready for pickup and will be held for you for 7 days. Would you like me to provide the library hours?"
+    },
+    {
+      "role": "user",
+      "content": "I said hello like three times before you said anything."
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize for the delay. As I mentioned, 'The Great Gatsby' is ready for pickup at City Library, and it will be held for you for 7 days. Would you like to know the library hours?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_205343.wav",
+  "duration_seconds": 55.529617,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-30T21:06:47.795176",
+  "phone": "7252878970",
+  "objective": "You are calling from Tech Support to help with a computer issue. Ask what problem they're experiencing.",
+  "context": {
+    "company_name": "Tech Support"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_210646.wav",
+  "duration_seconds": 33.921923,
+  "modem": "SIM7600G-H"
+}

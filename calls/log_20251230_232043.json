@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-12-30T23:20:43.256584",
+  "phone": "7252878970",
+  "objective": "You are calling from Sunrise Bakery. The customer ordered a custom birthday cake for Saturday. Call to confirm the pickup time and ask if they want any message written on the cake.",
+  "context": {
+    "bakery": "Sunrise Bakery",
+    "order": "birthday cake",
+    "pickup_day": "Saturday"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_232041.wav",
+  "duration_seconds": 24.483039,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-12-30T23:21:39.395755",
+  "phone": "7252878970",
+  "objective": "You are calling from Downtown Auto Repair. The customer's oil change is complete and the car is ready for pickup. Total is 45 dollars. Ask when they can come get it.",
+  "context": {
+    "shop": "Downtown Auto Repair",
+    "service": "oil change",
+    "total": "$45"
+  },
+  "success": false,
+  "summary": "Hello, this is Downtown Auto Repair. I'm calling to let you know your car's oil change is complete and it's ready for pickup. The total comes to $45. When would you be able to come by and get it?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is Downtown Auto Repair. I'm calling to let you know your car's oil change is complete and it's ready for pickup. The total comes to $45. When would you be able to come by and get it?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_232138.wav",
+  "duration_seconds": 42.316729,
+  "modem": "SIM7600G-H"
+}

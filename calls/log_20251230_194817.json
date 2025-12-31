@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-12-30T19:48:17.798063",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. IMPORTANT: Wait silently until the person answers and says hello. Only after they greet you, introduce yourself briefly. Keep your responses short.",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_194816.wav",
+  "duration_seconds": 39.865294,
+  "modem": "SIM7600G-H"
+}

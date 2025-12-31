@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-30T20:54:56.262066",
+  "phone": "7252878970",
+  "objective": "You are a customer service rep from AutoCare calling about the customer's vehicle service. Their oil change and tire rotation is complete. The total is $89.95. Ask when they can pick up the car - you're open until 6pm today.",
+  "context": {
+    "company_name": "AutoCare",
+    "service": "oil change and tire rotation"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_205454.wav",
+  "duration_seconds": 28.455961,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-12-30T19:46:57.067467",
+  "phone": "2283430054",
+  "objective": "You are Scott's AI assistant making a test call. IMPORTANT: Wait silently until the person answers and says hello. Only after they greet you, introduce yourself briefly. Keep your responses short. If they interrupt you, stop talking immediately.",
+  "context": {},
+  "success": false,
+  "summary": "Certainly! I'm an AI assistant calling on behalf of Scott. This is just a test call to ensure everything is working properly. Is there anything specific you'd like to discuss?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "I will."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a quick test call on his behalf. How can I help you today?"
+    },
+    {
+      "role": "user",
+      "content": "Hello."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. I'm just making a quick test call on his behalf. How are you today?"
+    },
+    {
+      "role": "user",
+      "content": "And we'll exploy again."
+    },
+    {
+      "role": "assistant",
+      "content": "Certainly! I'm an AI assistant calling on behalf of Scott. This is just a test call to ensure everything is working properly. Is there anything specific you'd like to discuss?"
+    },
+    {
+      "role": "user",
+      "content": "Stop."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_194655.wav",
+  "duration_seconds": 48.891133,
+  "modem": "SIM7600G-H"
+}

@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-12-30T20:24:07.279007",
+  "phone": "7252878970",
+  "objective": "You are Scott's AI assistant making a test call. When you hear someone say hello, introduce yourself briefly and ask how they're doing.",
+  "context": {},
+  "success": false,
+  "summary": "You're welcome. If you have any other questions or need assistance, don't hesitate to ask.",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott's AI assistant. How are you doing today?"
+    },
+    {
+      "role": "user",
+      "content": "What?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm Scott's AI assistant. Just checking in to see how you're doing today."
+    },
+    {
+      "role": "user",
+      "content": "Yeah, it'd be better if you waited for me to actually say hello before saying something, but..."
+    },
+    {
+      "role": "user",
+      "content": "Here we are."
+    },
+    {
+      "role": "assistant",
+      "content": "I apologize for that. How can I assist you today?"
+    },
+    {
+      "role": "user",
+      "content": "Uh, can you tell me the plot of the movie called Caution?"
+    },
+    {
+      "role": "user",
+      "content": "stealing"
+    },
+    {
+      "role": "user",
+      "content": "Really soon 2025"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, but I don't have information on a movie called \"Bot Stealing.\" Could you please provide more details or clarify the title?"
+    },
+    {
+      "role": "user",
+      "content": "Caught stealing. Caught."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, but I don't have information on a movie titled \"Caught Stealing\" from 2025. It might be a new release or not widely covered. If you have any other questions or need assistance with something else, feel free to let me know."
+    },
+    {
+      "role": "user",
+      "content": "It's with me."
+    },
+    {
+      "role": "assistant",
+      "content": "You're welcome. If you have any other questions or need assistance, don't hesitate to ask."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_202405.wav",
+  "duration_seconds": 101.353129,
+  "modem": "SIM7600G-H"
+}

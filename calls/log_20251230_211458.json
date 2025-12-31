@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-12-30T21:14:58.889427",
+  "phone": "7252878970",
+  "objective": "You are calling from Joe's Auto Shop. The customer's car is ready - we replaced the brake pads and rotors. Total cost is $485. We're open until 7pm tonight if they want to pick it up.",
+  "context": {
+    "shop_name": "Joe's Auto Shop",
+    "repair": "brake pads and rotors",
+    "total": "$485"
+  },
+  "success": false,
+  "summary": "",
+  "collected_info": {},
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_211457.wav",
+  "duration_seconds": 46.537564,
+  "modem": "SIM7600G-H"
+}

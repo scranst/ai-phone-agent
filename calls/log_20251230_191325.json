@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-12-30T19:13:25.428119",
+  "phone": "7252878970",
+  "objective": "Say hello and ask if they can hear you clearly. When they respond, repeat back what they said to confirm you understood them.",
+  "context": {},
+  "success": false,
+  "summary": "I heard some static. Could you please repeat that?",
+  "collected_info": {},
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "Hello, this is your AI assistant calling on behalf of a customer. Can you hear me clearly?"
+    },
+    {
+      "role": "user",
+      "content": "Thank you for watching. Always be happy."
+    },
+    {
+      "role": "assistant",
+      "content": "I heard some static. Could you please repeat that?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_191324.wav",
+  "duration_seconds": 41.596845,
+  "modem": "SIM7600G-H"
+}
