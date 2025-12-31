@@ -403,7 +403,7 @@ async def home():
                         <div class="cheatsheet-section">
                             <h4>🔄 Call Transfer (Conference to your phone)</h4>
                             <pre>TRANSFER_TO: 7025551234
-TRANSFER_WHEN: They confirm they want to proceed</pre>
+TRANSFER_IF: They ask to speak to a human</pre>
                             <p>AI will say "Please hold" and conference you into the call when condition is met.</p>
                         </div>
 
@@ -411,7 +411,7 @@ TRANSFER_WHEN: They confirm they want to proceed</pre>
                             <h4>📞 Lead Qualification</h4>
                             <pre>WHO YOU ARE: Sales rep for ABC Company
 TRANSFER_TO: 7025551234
-TRANSFER_WHEN: Budget over $1000 and timeline under 30 days</pre>
+TRANSFER_IF: Budget over $1000 and timeline under 30 days</pre>
                         </div>
 
                         <div class="cheatsheet-section">
@@ -431,7 +431,7 @@ PATIENT NAME: John Doe</pre>
                         <div class="cheatsheet-section">
                             <h4>💡 Tips</h4>
                             <p>• Keys are shown to AI as context</p>
-                            <p>• <code>TRANSFER_TO</code> + <code>TRANSFER_WHEN</code> enables call transfer</p>
+                            <p>• <code>TRANSFER_TO</code> + <code>TRANSFER_IF</code> enables call transfer</p>
                             <p>• Keep objectives short and clear</p>
                             <p>• AI won't make up info it doesn't have</p>
                         </div>

@@ -45,9 +45,13 @@ class LLMEngine:
             objective: What the AI should accomplish
             context: Additional context (name, business info, etc.)
         """
-        # Check for special context keys
-        self.transfer_to = context.pop("TRANSFER_TO", None)
-        self.transfer_when = context.pop("TRANSFER_WHEN", None)
+        # Check for special context keys (use get to not modify original dict)
+        self.transfer_to = context.get("TRANSFER_TO")
+        self.transfer_when = context.get("TRANSFER_IF") or context.get("TRANSFER_WHEN")
+
+        # Log transfer config if present
+        if self.transfer_to:
+            logger.info(f"Transfer configured: TO={self.transfer_to}, IF={self.transfer_when}")
 
         context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
 
@@ -71,9 +75,8 @@ RULES:
             self.system_prompt += f"""
 
 TRANSFER INSTRUCTIONS:
-When the following condition is met: {self.transfer_when}
-Say exactly: "Great, let me transfer you to someone who can help. Please hold."
-Then add [TRANSFER] at the end of your message (this triggers the transfer)."""
+You can transfer the call to a human IF: {self.transfer_when}
+When you need to transfer, say: "Let me transfer you now. Please hold." then add [TRANSFER] at the end."""
 
         self.conversation_history = []
         logger.info(f"Objective set: {objective[:100]}...")

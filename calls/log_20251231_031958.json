@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-12-31T03:19:58.717914",
+  "phone": "7029296193",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_WHEN": "they ask to talk to scott"
+  },
+  "success": false,
+  "summary": "Hey Poy, it's me. I have some bad news - Ton Ton Katsuya is closed tomorrow, so we won't be able to go. Do you have any other restaurant recommendations we could try instead? Let me know what you think. [TRANSFER]",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Your call has been forwarded to voicemail, the person you're trying to reach is not available, at the tone."
+    },
+    {
+      "role": "assistant",
+      "content": "Hey Poy, it's me. I have some bad news - Ton Ton Katsuya is closed tomorrow, so we won't be able to go. Do you have any other restaurant recommendations we could try instead? Let me know what you think. [TRANSFER]"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_031958.wav",
+  "duration_seconds": 39.644659996032715,
+  "engine": "local"
+}

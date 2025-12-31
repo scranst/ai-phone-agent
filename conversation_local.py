@@ -102,7 +102,7 @@ class LocalConversationEngine:
         )
 
         self.stt = SpeechToText(
-            model_size="base.en",
+            model_size="small.en",  # Upgraded from base.en for better accuracy
             device="cpu",
             compute_type="int8"
         )

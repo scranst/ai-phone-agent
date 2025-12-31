@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-12-31T12:11:32.102480",
+  "phone": "(702) 266-3865",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_WHEN": "they ask to talk to scott"
+  },
+  "success": false,
+  "summary": "Hi Poy, this is Scott. I wanted to let you know that we can't go to Ton Ton Katsuya tomorrow as they are closed. Do you have any other restaurant recommendations we could try instead? [TRANSFER]",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hi if you record your name and reason for calling, I'll see if this person is available."
+    },
+    {
+      "role": "assistant",
+      "content": "Hi Poy, this is Scott. I wanted to let you know that we can't go to Ton Ton Katsuya tomorrow as they are closed. Do you have any other restaurant recommendations we could try instead? [TRANSFER]"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_121131.wav",
+  "duration_seconds": 20.80896306037903,
+  "engine": "local"
+}

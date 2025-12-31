@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-12-31T03:14:19.963444",
+  "phone": "7029296193",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_WHEN": "they ask to talk to scott"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767179659.963419,
+  "engine": "local"
+}

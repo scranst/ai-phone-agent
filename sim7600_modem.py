@@ -150,22 +150,42 @@ class SIM7600Modem:
     def disconnect(self):
         """Disconnect from the modem"""
         self._running = False
+
+        # Stop monitor thread
         if self._monitor_thread:
             self._monitor_thread.join(timeout=2)
+            self._monitor_thread = None
+
+        # Reset call state
+        self.current_call = None
 
         if self.dev:
+            try:
+                # Try to hang up any active call
+                self._send_at("AT+CHUP", timeout=1000)
+            except:
+                pass
+
             try:
                 usb.util.release_interface(self.dev, self._at_interface)
             except:
                 pass
+
             try:
                 usb.util.dispose_resources(self.dev)
             except:
                 pass
+
+            try:
+                # Reset the device
+                self.dev.reset()
+            except:
+                pass
+
             self.dev = None
 
         # Give USB subsystem time to fully release
-        time.sleep(1)
+        time.sleep(1.5)
         logger.info("Disconnected from modem")
 
     def _send_at(self, cmd: str, timeout: int = 2000) -> str:
@@ -279,11 +299,31 @@ class SIM7600Modem:
 
     def hold_call(self) -> bool:
         """Put current call on hold"""
+        # Check current call state first
+        clcc = self._send_at("AT+CLCC")
+        logger.info(f"Current calls before hold: {clcc.strip()}")
+
+        # Try standard CHLD command first
         response = self._send_at("AT+CHLD=2")
+        logger.info(f"Hold response (raw): [{response}]")
+
         if "OK" in response:
             logger.info("Call placed on hold")
             return True
-        logger.error(f"Failed to hold call: {response}")
+
+        # Some modems need CHLD=2,0 format
+        response = self._send_at("AT+CHLD=2,0")
+        logger.info(f"Hold (alt) response (raw): [{response}]")
+
+        if "OK" in response:
+            logger.info("Call placed on hold (alt command)")
+            return True
+
+        # Try AT+CHLD=? to see supported options
+        supported = self._send_at("AT+CHLD=?")
+        logger.info(f"Supported CHLD options: {supported.strip()}")
+
+        logger.error(f"Failed to hold call")
         return False
 
     def resume_call(self) -> bool:
@@ -296,21 +336,105 @@ class SIM7600Modem:
 
     def conference_calls(self) -> bool:
         """Join held call with active call (3-way conference)"""
+        # Try standard conference command
         response = self._send_at("AT+CHLD=3")
-        if "OK" in response:
+        logger.info(f"Conference response: {response.strip()}")
+
+        if "OK" in response and "END" not in response:
             logger.info("Calls conferenced together")
             return True
-        logger.error(f"Failed to conference: {response}")
+
+        # Try alternative: CHLD=3,0 (join all calls)
+        response = self._send_at("AT+CHLD=3,0")
+        logger.info(f"Conference (alt1) response: {response.strip()}")
+
+        if "OK" in response and "END" not in response:
+            logger.info("Calls conferenced (alt1)")
+            return True
+
+        # Try multiparty call command
+        response = self._send_at("AT+CHLD=4")
+        logger.info(f"Conference (alt2 CHLD=4) response: {response.strip()}")
+
+        if "OK" in response and "END" not in response:
+            logger.info("Calls conferenced (multiparty)")
+            return True
+
+        # Check if any response contains "END" which means call dropped
+        if "END" in response:
+            logger.error("Conference failed - call ended")
+            return False
+
+        logger.error(f"Failed to conference calls")
+        return False
+
+    def check_supplementary_services(self) -> dict:
+        """Check what supplementary services are supported by the network"""
+        services = {}
+
+        # Check call waiting
+        resp = self._send_at("AT+CCWA?")
+        services['call_waiting'] = "OK" in resp
+        logger.info(f"Call waiting: {resp.strip()}")
+
+        # Check call hold
+        resp = self._send_at("AT+CHLD=?")
+        services['call_hold'] = resp
+        logger.info(f"Call hold options: {resp.strip()}")
+
+        # Check ECT (Explicit Call Transfer) support
+        resp = self._send_at("AT+CHLD=4")  # ECT is sometimes CHLD=4
+        logger.info(f"ECT via CHLD=4: {resp.strip()}")
+
+        # Check if AT+CTFR is supported
+        resp = self._send_at("AT+CTFR=?")
+        services['ctfr'] = "OK" in resp or "ERROR" not in resp
+        logger.info(f"CTFR support: {resp.strip()}")
+
+        # Check supplementary service notifications
+        resp = self._send_at("AT+CSSN=1,1")
+        logger.info(f"CSSN: {resp.strip()}")
+
+        return services
+
+    def explicit_call_transfer(self, phone_number: str) -> bool:
+        """
+        Try Explicit Call Transfer (ECT) - direct transfer without conference.
+        This is the 3GPP standard way to transfer calls.
+        """
+        clean_number = "".join(c for c in phone_number if c.isdigit() or c == "+")
+
+        # Method 1: AT+CTFR (Call Transfer)
+        response = self._send_at(f"AT+CTFR=\"{clean_number}\"")
+        logger.info(f"CTFR response: {response.strip()}")
+        if "OK" in response:
+            logger.info("ECT via CTFR successful")
+            return True
+
+        # Method 2: AT+CTFR without quotes
+        response = self._send_at(f"AT+CTFR={clean_number}")
+        logger.info(f"CTFR (no quotes) response: {response.strip()}")
+        if "OK" in response:
+            logger.info("ECT via CTFR successful")
+            return True
+
+        # Method 3: Blind transfer via ATD with special prefix
+        # Some modems support ATD>number for transfer
+        response = self._send_at(f"ATD>{clean_number};", timeout=3000)
+        logger.info(f"ATD> transfer response: {response.strip()}")
+        if "OK" in response:
+            logger.info("Blind transfer via ATD> successful")
+            return True
+
         return False
 
     def transfer_to(self, phone_number: str, announce_message: str = None) -> bool:
         """
-        Transfer current call to another number via conference.
+        Transfer current call to another number.
 
-        1. Holds current call
-        2. Dials the transfer target
-        3. Waits for answer
-        4. Conferences calls together
+        Tries multiple methods:
+        1. Explicit Call Transfer (ECT) - cleanest method
+        2. Hold + Dial + Conference (3-way calling)
 
         Args:
             phone_number: Number to transfer to
@@ -322,10 +446,32 @@ class SIM7600Modem:
         clean_number = "".join(c for c in phone_number if c.isdigit() or c == "+")
         logger.info(f"Initiating transfer to {clean_number}")
 
+        # First, check what services are available
+        self.check_supplementary_services()
+
+        # Enable call waiting and supplementary service notifications
+        self._send_at("AT+CCWA=1")
+        self._send_at("AT+CSSN=1,1")  # Enable SS notifications
+        time.sleep(0.2)
+
+        # Method 1: Try ECT first (cleanest transfer)
+        logger.info("Attempting Explicit Call Transfer (ECT)...")
+        if self.explicit_call_transfer(clean_number):
+            return True
+
+        logger.info("ECT not supported, trying hold+conference method...")
+
+        # Method 2: Hold + Dial + Conference
         # Step 1: Hold current call
         if not self.hold_call():
             logger.error("Transfer failed: Could not hold call")
-            return False
+            # Try alternate hold methods
+            logger.info("Trying alternate hold method (ATH1)...")
+            response = self._send_at("ATH1")  # Some modems use ATH1 for hold
+            logger.info(f"ATH1 response: {response.strip()}")
+            if "OK" not in response:
+                logger.error("All hold methods failed")
+                return False
 
         time.sleep(0.5)
 
@@ -339,9 +485,11 @@ class SIM7600Modem:
         logger.info(f"Dialing transfer target {clean_number}...")
 
         # Step 3: Wait for answer (up to 30 seconds)
+        answered = False
         for _ in range(60):
             time.sleep(0.5)
             response = self._send_at("AT+CLCC")
+            logger.debug(f"CLCC during transfer: {response.strip()}")
 
             # Look for two calls - one held (stat=1) and one active (stat=0)
             if response.count("+CLCC:") >= 2:
@@ -352,18 +500,48 @@ class SIM7600Modem:
                     if len(fields) >= 3:
                         stat = int(fields[2].strip())
                         if stat == 0:  # Active call found
-                            logger.info("Transfer target answered")
-                            # Step 4: Conference the calls
-                            time.sleep(0.5)
-                            if self.conference_calls():
-                                logger.info("Transfer complete - calls conferenced")
-                                return True
-                            else:
-                                logger.error("Failed to conference calls")
-                                return False
+                            answered = True
+                            break
+                if answered:
+                    break
 
-        logger.error("Transfer failed: Target did not answer")
-        self.resume_call()  # Resume original call
+        if not answered:
+            logger.error("Transfer failed: Target did not answer")
+            self.resume_call()  # Resume original call
+            return False
+
+        logger.info("Transfer target answered")
+        time.sleep(1.0)  # Let call stabilize
+
+        # Step 4: Try all conference methods
+        conference_methods = [
+            ("AT+CHLD=3", "standard conference"),
+            ("AT+CHLD=3,0", "conference variant"),
+            ("AT+CHLD=4", "multiparty/ECT"),
+            ("AT+CHLD=2", "swap then conference"),
+        ]
+
+        for cmd, desc in conference_methods:
+            response = self._send_at(cmd)
+            logger.info(f"{desc} ({cmd}): {response.strip()}")
+
+            if "OK" in response and "END" not in response:
+                # Verify conference worked
+                time.sleep(0.5)
+                clcc = self._send_at("AT+CLCC")
+                logger.info(f"Call state after {desc}: {clcc.strip()}")
+
+                # Check for multiparty flag (mpty=1)
+                if "1,\"" in clcc or ",1\n" in clcc:
+                    logger.info(f"Transfer complete via {desc}")
+                    return True
+
+        # Last resort: Try to merge calls by dialing again while connected
+        logger.info("Trying last resort: merge via redial...")
+        response = self._send_at("AT+CHLD=1")  # Release held call
+        logger.info(f"CHLD=1 response: {response.strip()}")
+
+        logger.error("All transfer methods failed")
         return False
 
     def get_call_info(self) -> Optional[CallInfo]:

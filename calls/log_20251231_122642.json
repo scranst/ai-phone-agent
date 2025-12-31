@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-12-31T12:26:42.197230",
+  "phone": "(702) 266-3865",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_IF": "they ask to talk to scott"
+  },
+  "success": true,
+  "summary": "Okay, let me transfer you now. Please hold. [TRANSFER]",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "I'm sorry, I'm sorry, I'm sorry, I'm sorry."
+    },
+    {
+      "role": "assistant",
+      "content": "Poy, no need to apologize. I have an update - we can't go to Ton Ton Katsuya tomorrow as they're closed. Do you have any other restaurant recommendations we could try instead?"
+    },
+    {
+      "role": "user",
+      "content": "That was Bautista's hole in the wall."
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, I see. In that case, let me double check on Ton Ton Katsuya's hours. One moment please."
+    },
+    {
+      "role": "user",
+      "content": "Uh, can you transfer me to Scott?"
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, let me transfer you now. Please hold. [TRANSFER]"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_122641.wav",
+  "duration_seconds": 51.17829895019531,
+  "engine": "local"
+}

@@ -1,0 +1,32 @@
+{
+  "timestamp": "2025-12-31T03:22:17.191552",
+  "phone": "7029296193",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_WHEN": "they ask to talk to scott"
+  },
+  "success": true,
+  "summary": "Great, let me transfer you to someone who can help. Please hold. [TRANSFER]",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey Poy, it's me. I have some bad news - Ton Ton Katsuya is closed tomorrow, so we won't be able to go there. Do you have any other recommendations for good restaurants we could try instead?"
+    },
+    {
+      "role": "user",
+      "content": "Can I talk to Scott?"
+    },
+    {
+      "role": "assistant",
+      "content": "Great, let me transfer you to someone who can help. Please hold. [TRANSFER]"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_032216.wav",
+  "duration_seconds": 28.104876041412354,
+  "engine": "local"
+}

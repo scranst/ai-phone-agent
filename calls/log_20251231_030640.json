@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-12-31T03:06:40.794849",
+  "phone": "7029296193",
+  "objective": "talk to poy and tell her we can't go to ton ton katsuya tomorrow because they're closed, and ask her if she has any recommendations",
+  "context": {
+    "TRANSFER_TO": "2283430054",
+    "TRANSFER_WHEN": "they ask to talk to scott"
+  },
+  "success": true,
+  "summary": "Great, let me transfer you to someone who can help. Please hold. [TRANSFER]",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "You"
+    },
+    {
+      "role": "assistant",
+      "content": "Hi there! I wanted to let you know that Ton Ton Katsuya is closed tomorrow, so we won't be able to go there. Do you have any other restaurant recommendations we could check out instead?"
+    },
+    {
+      "role": "user",
+      "content": "Then we go on Tarnay."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, got it. Unfortunately, Ton Ton Katsuya is closed tomorrow, so we'll have to find a different plan. Do you have any other restaurant recommendations we could look into instead? I'm happy to help find a good option."
+    },
+    {
+      "role": "user",
+      "content": "No. Up. Don't do the shit that you're in. Put on the poxys. Up."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm afraid I don't quite understand what you're suggesting. Could you please clarify what you'd like me to do? I'm happy to try to help, but I want to make sure I'm interpreting your request correctly. Please let me know if you have any other restaurant recommendations we could look into for tomorrow."
+    },
+    {
+      "role": "user",
+      "content": "Can I talk to Scott?"
+    },
+    {
+      "role": "assistant",
+      "content": "Great, let me transfer you to someone who can help. Please hold. [TRANSFER]"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_030640.wav",
+  "duration_seconds": 73.06505584716797,
+  "engine": "local"
+}

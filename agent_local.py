@@ -154,6 +154,12 @@ class PhoneAgentLocal:
             except:
                 pass
 
+            # Always disconnect modem to release USB interface
+            try:
+                self.modem.disconnect()
+            except:
+                pass
+
             # Save recording
             recording_path = self.audio.stop_recording()
             self.audio.stop()
@@ -257,9 +263,9 @@ class PhoneAgentLocal:
 
                     # Check if we need to transfer the call
                     elif self.conversation.state == ConversationState.TRANSFERRING:
-                        logger.info("Initiating call transfer...")
-                        await asyncio.sleep(1)  # Let "please hold" audio play
                         transfer_number = self.conversation._transfer_number
+                        logger.info(f"Initiating call transfer to: {transfer_number}")
+                        await asyncio.sleep(1)  # Let "please hold" audio play
                         if transfer_number:
                             success = self.modem.transfer_to(transfer_number)
                             if success:
