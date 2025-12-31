@@ -6,6 +6,9 @@ load_dotenv()
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
+# Anthropic (for Claude Haiku)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
 # =============================================================================
 # SIM7600 HAT Audio Configuration
 # =============================================================================

@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
 
-from agent import PhoneAgent, CallRequest, CallResult
+from agent_local import PhoneAgentLocal, CallRequest, CallResult
 import config
 
 logging.basicConfig(level=logging.INFO)
@@ -230,9 +230,12 @@ async def home():
             background: #0a0a0a;
             border-radius: 8px;
             margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
+        .history-item:hover { background: #1a1a1a; }
         .history-item .phone { font-weight: 600; }
-        .history-item .objective { color: #888; font-size: 14px; }
+        .history-item .objective { color: #888; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
         .history-item .status {
             padding: 4px 12px;
             border-radius: 20px;
@@ -240,6 +243,64 @@ async def home():
         }
         .history-item .status.success { background: #1e3a1e; color: #4ade80; }
         .history-item .status.failed { background: #3a1e1e; color: #f87171; }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #1a1a1a;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+        .modal-header h3 { margin: 0; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-close:hover { color: #fff; }
+        .modal-body { padding: 20px; }
+        .modal-meta {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .modal-meta-item label { display: block; color: #888; font-size: 12px; margin-bottom: 4px; }
+        .modal-meta-item span { font-size: 14px; }
+        .modal-transcript {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .modal-transcript h4 { margin: 0 0 12px 0; color: #888; font-size: 14px; }
 
         .add-context-btn {
             color: #4a9eff;
@@ -306,6 +367,48 @@ async def home():
         <div class="card">
             <h3 style="margin-bottom: 16px;">Recent Calls</h3>
             <div id="history"></div>
+        </div>
+    </div>
+
+    <!-- Call Detail Modal -->
+    <div class="modal-overlay" id="call-modal" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">Call Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-meta">
+                    <div class="modal-meta-item">
+                        <label>Phone</label>
+                        <span id="modal-phone"></span>
+                    </div>
+                    <div class="modal-meta-item">
+                        <label>Duration</label>
+                        <span id="modal-duration"></span>
+                    </div>
+                    <div class="modal-meta-item">
+                        <label>Date</label>
+                        <span id="modal-date"></span>
+                    </div>
+                    <div class="modal-meta-item">
+                        <label>Status</label>
+                        <span id="modal-status"></span>
+                    </div>
+                </div>
+                <div class="modal-meta-item" style="margin-bottom: 16px;">
+                    <label>Objective</label>
+                    <span id="modal-objective"></span>
+                </div>
+                <div class="modal-meta-item" style="margin-bottom: 16px;">
+                    <label>Summary</label>
+                    <span id="modal-summary"></span>
+                </div>
+                <div class="modal-transcript">
+                    <h4>Transcript</h4>
+                    <div id="modal-transcript"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -458,7 +561,7 @@ async def home():
 
                 const container = document.getElementById('history');
                 container.innerHTML = history.map(item => `
-                    <div class="history-item">
+                    <div class="history-item" onclick="showCallDetails('${item.id}')">
                         <div>
                             <div class="phone">${item.phone}</div>
                             <div class="objective">${item.objective}</div>
@@ -472,6 +575,48 @@ async def home():
                 console.error('Failed to load history:', error);
             }
         }
+
+        async function showCallDetails(callId) {
+            try {
+                const response = await fetch(`/api/call/${callId}`);
+                const call = await response.json();
+
+                // Populate modal
+                document.getElementById('modal-phone').textContent = call.phone;
+                document.getElementById('modal-duration').textContent = call.duration.toFixed(1) + 's';
+                document.getElementById('modal-date').textContent = new Date(call.timestamp).toLocaleString();
+                document.getElementById('modal-status').innerHTML = call.success
+                    ? '<span style="color: #4ade80;">Success</span>'
+                    : '<span style="color: #f87171;">Failed</span>';
+                document.getElementById('modal-objective').textContent = call.objective;
+                document.getElementById('modal-summary').textContent = call.summary || 'No summary';
+
+                // Populate transcript
+                const transcriptContainer = document.getElementById('modal-transcript');
+                transcriptContainer.innerHTML = call.transcript.map(msg => `
+                    <div class="transcript-entry ${msg.role}">
+                        <div class="transcript-role">${msg.role === 'user' ? '👤 Caller' : '🤖 AI'}</div>
+                        <div>${msg.content}</div>
+                    </div>
+                `).join('') || '<p style="color: #666;">No transcript</p>';
+
+                // Show modal
+                document.getElementById('call-modal').classList.add('active');
+            } catch (error) {
+                console.error('Failed to load call details:', error);
+            }
+        }
+
+        function closeModal(event) {
+            if (!event || event.target === event.currentTarget) {
+                document.getElementById('call-modal').classList.remove('active');
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
 
         // Initialize
         connectWebSocket();
@@ -501,14 +646,24 @@ async def start_call(request: CallRequestModel):
     """Start a new AI phone call"""
     call_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Create agent
-    agent = PhoneAgent()
+    # Create agent with local STT/TTS
+    agent = PhoneAgentLocal()
 
     # Set up callbacks for live updates
-    def on_state(category, state):
+    def on_state(state):
+        # Map ConversationState to UI status
+        status_map = {
+            "idle": "idle",
+            "listening": "connected",
+            "processing": "speaking",
+            "speaking": "speaking",
+            "completed": "ended",
+            "failed": "failed"
+        }
+        status = status_map.get(state.value, state.value)
         asyncio.create_task(broadcast({
             "type": "status",
-            "status": state
+            "status": status
         }))
 
     def on_transcript(role, text):
@@ -518,6 +673,7 @@ async def start_call(request: CallRequestModel):
             "text": text
         }))
 
+    # Register callbacks on the agent
     agent.on_state_change(on_state)
     agent.on_transcript(on_transcript)
 
@@ -527,6 +683,12 @@ async def start_call(request: CallRequestModel):
     # Start call in background
     async def run_call():
         try:
+            # Broadcast dialing status
+            await broadcast({
+                "type": "status",
+                "status": "dialing"
+            })
+
             result = await agent.call(CallRequest(
                 phone=request.phone,
                 objective=request.objective,
@@ -538,7 +700,7 @@ async def start_call(request: CallRequestModel):
                 "type": "result",
                 "success": result.success,
                 "summary": result.summary,
-                "collected_info": result.collected_info,
+                "collected_info": {},  # Not used in local engine
                 "duration": result.duration_seconds
             })
         finally:
@@ -556,7 +718,13 @@ async def end_call(call_id: str):
     if call_id not in active_calls:
         raise HTTPException(404, "Call not found")
 
-    await active_calls[call_id].stop()
+    agent = active_calls[call_id]
+    # End the call by setting flag and hanging up
+    agent._call_active = False
+    try:
+        agent.modem.hangup()
+    except:
+        pass
     return {"status": "ended"}
 
 
@@ -584,6 +752,33 @@ async def get_history():
                     pass
 
     return history[:20]  # Last 20 calls
+
+
+@app.get("/api/call/{call_id}")
+async def get_call_details(call_id: str):
+    """Get full details for a specific call"""
+    file_path = os.path.join(config.CALLS_DIR, call_id)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Call not found")
+
+    try:
+        with open(file_path) as f:
+            data = json.load(f)
+            return {
+                "id": call_id,
+                "timestamp": data.get("timestamp", ""),
+                "phone": data.get("phone", ""),
+                "objective": data.get("objective", ""),
+                "context": data.get("context", {}),
+                "success": data.get("success", False),
+                "summary": data.get("summary", ""),
+                "transcript": data.get("transcript", []),
+                "duration": data.get("duration_seconds", 0),
+                "recording_path": data.get("recording_path", "")
+            }
+    except Exception as e:
+        raise HTTPException(500, f"Failed to read call: {str(e)}")
 
 
 def main():

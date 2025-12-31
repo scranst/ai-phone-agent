@@ -307,10 +307,12 @@ class SIM7600Modem:
                                     self._notify_state(CallState.INCOMING)
                         except (IndexError, ValueError) as e:
                             logger.debug(f"CLCC parse error: {e}")
-                    elif self.current_call.state in [CallState.RINGING, CallState.CONNECTED]:
-                        # No call info but we were in a call - it ended
+                    elif self.current_call.state == CallState.CONNECTED:
+                        # No call info but we were connected - call ended
                         self.current_call.end_time = time.time()
                         self._notify_state(CallState.ENDED)
+                    # Note: Don't mark as ended if RINGING - CLCC may not return data
+                    # until the call is actually answered
 
                 # Check for incoming calls when idle
                 if not self.current_call or self.current_call.state == CallState.IDLE:
