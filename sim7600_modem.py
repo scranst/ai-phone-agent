@@ -277,6 +277,95 @@ class SIM7600Modem:
         """Send DTMF tone"""
         self._send_at(f"AT+VTS={digit}")
 
+    def hold_call(self) -> bool:
+        """Put current call on hold"""
+        response = self._send_at("AT+CHLD=2")
+        if "OK" in response:
+            logger.info("Call placed on hold")
+            return True
+        logger.error(f"Failed to hold call: {response}")
+        return False
+
+    def resume_call(self) -> bool:
+        """Resume held call"""
+        response = self._send_at("AT+CHLD=2")
+        if "OK" in response:
+            logger.info("Call resumed")
+            return True
+        return False
+
+    def conference_calls(self) -> bool:
+        """Join held call with active call (3-way conference)"""
+        response = self._send_at("AT+CHLD=3")
+        if "OK" in response:
+            logger.info("Calls conferenced together")
+            return True
+        logger.error(f"Failed to conference: {response}")
+        return False
+
+    def transfer_to(self, phone_number: str, announce_message: str = None) -> bool:
+        """
+        Transfer current call to another number via conference.
+
+        1. Holds current call
+        2. Dials the transfer target
+        3. Waits for answer
+        4. Conferences calls together
+
+        Args:
+            phone_number: Number to transfer to
+            announce_message: Optional message to speak before transfer
+
+        Returns:
+            True if transfer successful
+        """
+        clean_number = "".join(c for c in phone_number if c.isdigit() or c == "+")
+        logger.info(f"Initiating transfer to {clean_number}")
+
+        # Step 1: Hold current call
+        if not self.hold_call():
+            logger.error("Transfer failed: Could not hold call")
+            return False
+
+        time.sleep(0.5)
+
+        # Step 2: Dial transfer target
+        response = self._send_at(f"ATD{clean_number};", timeout=5000)
+        if "OK" not in response:
+            logger.error(f"Transfer failed: Could not dial {clean_number}")
+            self.resume_call()  # Try to resume original call
+            return False
+
+        logger.info(f"Dialing transfer target {clean_number}...")
+
+        # Step 3: Wait for answer (up to 30 seconds)
+        for _ in range(60):
+            time.sleep(0.5)
+            response = self._send_at("AT+CLCC")
+
+            # Look for two calls - one held (stat=1) and one active (stat=0)
+            if response.count("+CLCC:") >= 2:
+                # Check if second call is answered
+                lines = response.split("+CLCC:")
+                for line in lines[1:]:
+                    fields = line.split(",")
+                    if len(fields) >= 3:
+                        stat = int(fields[2].strip())
+                        if stat == 0:  # Active call found
+                            logger.info("Transfer target answered")
+                            # Step 4: Conference the calls
+                            time.sleep(0.5)
+                            if self.conference_calls():
+                                logger.info("Transfer complete - calls conferenced")
+                                return True
+                            else:
+                                logger.error("Failed to conference calls")
+                                return False
+
+        logger.error("Transfer failed: Target did not answer")
+        self.resume_call()  # Resume original call
+        return False
+
     def get_call_info(self) -> Optional[CallInfo]:
         """Get current call information"""
         return self.current_call

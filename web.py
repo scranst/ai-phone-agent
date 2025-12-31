@@ -310,6 +310,60 @@ async def home():
             font-size: 14px;
             padding: 8px 0;
         }
+
+        /* Cheat Sheet Styles */
+        .cheatsheet {
+            margin-top: 16px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .cheatsheet-toggle {
+            width: 100%;
+            background: #1a1a1a;
+            color: #888;
+            border: none;
+            padding: 12px 16px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cheatsheet-toggle:hover { background: #222; color: #aaa; }
+        .cheatsheet-toggle .arrow { transition: transform 0.2s; }
+        .cheatsheet-toggle.open .arrow { transform: rotate(180deg); }
+        .cheatsheet-content {
+            display: none;
+            padding: 16px;
+            background: #111;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .cheatsheet-content.open { display: block; }
+        .cheatsheet-section { margin-bottom: 16px; }
+        .cheatsheet-section:last-child { margin-bottom: 0; }
+        .cheatsheet-section h4 {
+            color: #4a9eff;
+            margin: 0 0 8px 0;
+            font-size: 13px;
+        }
+        .cheatsheet-section code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #7cb342;
+            font-family: monospace;
+        }
+        .cheatsheet-section pre {
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            overflow-x: auto;
+            color: #ccc;
+        }
     </style>
 </head>
 <body>
@@ -338,6 +392,51 @@ async def home():
                     </div>
                 </div>
                 <button class="add-context-btn" onclick="addContextRow()">+ Add context field</button>
+
+                <!-- Cheat Sheet -->
+                <div class="cheatsheet">
+                    <button class="cheatsheet-toggle" onclick="toggleCheatsheet(this)">
+                        <span>📋 Context Cheat Sheet</span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="cheatsheet-content">
+                        <div class="cheatsheet-section">
+                            <h4>🔄 Call Transfer (Conference to your phone)</h4>
+                            <pre>TRANSFER_TO: 7025551234
+TRANSFER_WHEN: They confirm they want to proceed</pre>
+                            <p>AI will say "Please hold" and conference you into the call when condition is met.</p>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>📞 Lead Qualification</h4>
+                            <pre>WHO YOU ARE: Sales rep for ABC Company
+TRANSFER_TO: 7025551234
+TRANSFER_WHEN: Budget over $1000 and timeline under 30 days</pre>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>🍕 Order Placement</h4>
+                            <pre>WHO YOU ARE: Customer ordering for Scott
+DELIVERY ADDRESS: 123 Main St
+PAYMENT: Cash on delivery</pre>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>📅 Appointment Reminder</h4>
+                            <pre>WHO YOU ARE: AI assistant for Dr. Smith's office
+APPOINTMENT: Tomorrow at 2:30 PM
+PATIENT NAME: John Doe</pre>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>💡 Tips</h4>
+                            <p>• Keys are shown to AI as context</p>
+                            <p>• <code>TRANSFER_TO</code> + <code>TRANSFER_WHEN</code> enables call transfer</p>
+                            <p>• Keep objectives short and clear</p>
+                            <p>• AI won't make up info it doesn't have</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <button class="btn btn-primary" id="start-btn" onclick="startCall()">
@@ -500,6 +599,12 @@ async def home():
 
         function removeContextRow(btn) {
             btn.parentElement.remove();
+        }
+
+        function toggleCheatsheet(btn) {
+            btn.classList.toggle('open');
+            const content = btn.nextElementSibling;
+            content.classList.toggle('open');
         }
 
         function getContext() {

@@ -255,6 +255,19 @@ class PhoneAgentLocal:
                         await asyncio.sleep(1)  # Let final audio play
                         self._call_active = False
 
+                    # Check if we need to transfer the call
+                    elif self.conversation.state == ConversationState.TRANSFERRING:
+                        logger.info("Initiating call transfer...")
+                        await asyncio.sleep(1)  # Let "please hold" audio play
+                        transfer_number = self.conversation._transfer_number
+                        if transfer_number:
+                            success = self.modem.transfer_to(transfer_number)
+                            if success:
+                                logger.info(f"Call transferred to {transfer_number}")
+                            else:
+                                logger.error("Transfer failed")
+                        self._call_active = False
+
             except asyncio.TimeoutError:
                 continue
 

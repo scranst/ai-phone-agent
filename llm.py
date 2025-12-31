@@ -45,8 +45,13 @@ class LLMEngine:
             objective: What the AI should accomplish
             context: Additional context (name, business info, etc.)
         """
+        # Check for special context keys
+        self.transfer_to = context.pop("TRANSFER_TO", None)
+        self.transfer_when = context.pop("TRANSFER_WHEN", None)
+
         context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
 
+        # Build base prompt
         self.system_prompt = f"""You are a voice chatbot having a conversation. The other person has just sent you a message.
 
 YOUR GOAL:
@@ -60,6 +65,15 @@ RULES:
 - Just say words - no asterisks, no actions like *dials* or *waits*
 - You are trying to accomplish YOUR goal - you need something from them
 - Do not make up information you don't have"""
+
+        # Add transfer instructions if configured
+        if self.transfer_to and self.transfer_when:
+            self.system_prompt += f"""
+
+TRANSFER INSTRUCTIONS:
+When the following condition is met: {self.transfer_when}
+Say exactly: "Great, let me transfer you to someone who can help. Please hold."
+Then add [TRANSFER] at the end of your message (this triggers the transfer)."""
 
         self.conversation_history = []
         logger.info(f"Objective set: {objective[:100]}...")
@@ -157,6 +171,14 @@ RULES:
 
         last_lower = last_response.lower()
         return any(phrase in last_lower for phrase in end_phrases)
+
+    def should_transfer(self, last_response: str) -> bool:
+        """Check if response contains transfer trigger"""
+        return "[TRANSFER]" in last_response
+
+    def get_transfer_number(self) -> Optional[str]:
+        """Get the number to transfer to"""
+        return getattr(self, 'transfer_to', None)
 
 
 # Test function

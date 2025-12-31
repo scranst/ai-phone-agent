@@ -29,6 +29,7 @@ class ConversationState(Enum):
     SPEAKING = "speaking"
     COMPLETED = "completed"
     FAILED = "failed"
+    TRANSFERRING = "transferring"
 
 
 @dataclass
@@ -37,6 +38,7 @@ class ConversationResult:
     summary: str
     transcript: list = field(default_factory=list)
     duration_seconds: float = 0.0
+    transfer_to: str = None  # Phone number to transfer to
 
 
 @dataclass
@@ -81,6 +83,7 @@ class LocalConversationEngine:
         self._running = False
         self._is_speaking = False  # True while playing TTS audio
         self._greeting_sent = False
+        self._transfer_number = None  # Number to transfer to
 
         # Audio sample rate
         self.sample_rate = 24000
@@ -238,8 +241,9 @@ class LocalConversationEngine:
             self._transcript_callback("assistant", response_text)
 
         # 3. Synthesize speech
-        # Strip any *asterisk actions* before TTS
+        # Strip any *asterisk actions* and [TRANSFER] markers before TTS
         clean_text = re.sub(r'\*[^*]+\*', '', response_text).strip()
+        clean_text = re.sub(r'\[TRANSFER\]', '', clean_text).strip()
         clean_text = ' '.join(clean_text.split())  # Collapse multiple spaces
 
         if not clean_text:
@@ -253,8 +257,12 @@ class LocalConversationEngine:
             self._set_state(ConversationState.LISTENING)
             return None
 
+        # Check if we should transfer the call
+        if self.llm.should_transfer(response_text):
+            self._transfer_number = self.llm.get_transfer_number()
+            self._set_state(ConversationState.TRANSFERRING)
         # Check if we should end the call
-        if self.llm.should_end_call(response_text):
+        elif self.llm.should_end_call(response_text):
             self._set_state(ConversationState.COMPLETED)
         else:
             self._set_state(ConversationState.SPEAKING)
@@ -284,15 +292,17 @@ class LocalConversationEngine:
 
         # Consider call successful if:
         # 1. State is COMPLETED (AI said goodbye), OR
-        # 2. There was meaningful conversation (>2 exchanges = 4 messages)
+        # 2. State is TRANSFERRING (call being transferred), OR
+        # 3. There was meaningful conversation (>2 exchanges = 4 messages)
         has_conversation = len(self.transcript) >= 4
-        success = (self.state == ConversationState.COMPLETED) or has_conversation
+        success = (self.state in [ConversationState.COMPLETED, ConversationState.TRANSFERRING]) or has_conversation
 
         return ConversationResult(
             success=success,
             summary=summary,
             transcript=self.transcript,
-            duration_seconds=time.time() - self.start_time
+            duration_seconds=time.time() - self.start_time,
+            transfer_to=self._transfer_number
         )
 
 
