@@ -158,8 +158,14 @@ class SIM7600Modem:
                 usb.util.release_interface(self.dev, self._at_interface)
             except:
                 pass
+            try:
+                usb.util.dispose_resources(self.dev)
+            except:
+                pass
             self.dev = None
 
+        # Give USB subsystem time to fully release
+        time.sleep(1)
         logger.info("Disconnected from modem")
 
     def _send_at(self, cmd: str, timeout: int = 2000) -> str:

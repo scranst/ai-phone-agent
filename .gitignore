@@ -1,7 +1,11 @@
 # Environment
 .env
 venv/
+venv_x86_backup/
 __pycache__/
+
+# Models (large files)
+models/
 
 # OS
 .DS_Store
