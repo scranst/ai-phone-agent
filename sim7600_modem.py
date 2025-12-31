@@ -459,23 +459,17 @@ class SIM7600Modem:
         if self.explicit_call_transfer(clean_number):
             return True
 
-        logger.info("ECT not supported, trying hold+conference method...")
+        logger.info("ECT not supported, trying 3-way calling method...")
 
-        # Method 2: Hold + Dial + Conference
-        # Step 1: Hold current call
-        if not self.hold_call():
-            logger.error("Transfer failed: Could not hold call")
-            # Try alternate hold methods
-            logger.info("Trying alternate hold method (ATH1)...")
-            response = self._send_at("ATH1")  # Some modems use ATH1 for hold
-            logger.info(f"ATH1 response: {response.strip()}")
-            if "OK" not in response:
-                logger.error("All hold methods failed")
-                return False
+        # Method 2: 3-way calling (no call waiting required)
+        # On carriers like Tello that support 3-way but NOT call waiting,
+        # we need to dial the second number directly without holding first.
 
-        time.sleep(0.5)
+        # Try to dial second number while first call is active
+        # The modem should automatically manage the first call
+        logger.info("Dialing second number for 3-way call (no hold)...")
 
-        # Step 2: Dial transfer target
+        # Step 1: Dial transfer target directly (skip hold)
         response = self._send_at(f"ATD{clean_number};", timeout=5000)
         if "OK" not in response:
             logger.error(f"Transfer failed: Could not dial {clean_number}")
@@ -484,7 +478,7 @@ class SIM7600Modem:
 
         logger.info(f"Dialing transfer target {clean_number}...")
 
-        # Step 3: Wait for answer (up to 30 seconds)
+        # Step 2: Wait for answer (up to 30 seconds)
         answered = False
         for _ in range(60):
             time.sleep(0.5)
@@ -513,7 +507,7 @@ class SIM7600Modem:
         logger.info("Transfer target answered")
         time.sleep(1.0)  # Let call stabilize
 
-        # Step 4: Try all conference methods
+        # Step 3: Merge calls (3-way conference)
         conference_methods = [
             ("AT+CHLD=3", "standard conference"),
             ("AT+CHLD=3,0", "conference variant"),
