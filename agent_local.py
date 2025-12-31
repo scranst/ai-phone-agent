@@ -112,8 +112,8 @@ class PhoneAgentLocal:
             logger.info("Call connected!")
             self._call_active = True
 
-            # Minimal delay for line to settle (reduced from 0.5s)
-            await asyncio.sleep(0.1)
+            # Wait for connection tones to fully settle before listening
+            await asyncio.sleep(2.5)
 
             # 5. Start conversation
             conv_config = ConversationConfig(

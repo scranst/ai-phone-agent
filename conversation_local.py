@@ -7,6 +7,7 @@ Uses local Whisper for STT, Claude Haiku for LLM, and Piper for TTS.
 
 import asyncio
 import logging
+import re
 import time
 import numpy as np
 from enum import Enum
@@ -92,9 +93,9 @@ class LocalConversationEngine:
             aggressiveness=3,  # 0-3, higher = more aggressive filtering
             sample_rate=self.sample_rate,
             min_speech_ms=200,
-            min_silence_ms=750,  # Pause detection
+            min_silence_ms=500,  # Faster turn-taking
             max_speech_ms=30000,  # 30 second max
-            energy_threshold=2500  # Slightly lower to catch quiet hellos
+            energy_threshold=4000  # Higher threshold to filter connection noise (real speech ~7000-12000 RMS)
         )
 
         self.stt = SpeechToText(
@@ -230,8 +231,16 @@ class LocalConversationEngine:
             self._transcript_callback("assistant", response_text)
 
         # 3. Synthesize speech
+        # Strip any *asterisk actions* before TTS
+        clean_text = re.sub(r'\*[^*]+\*', '', response_text).strip()
+        clean_text = ' '.join(clean_text.split())  # Collapse multiple spaces
+
+        if not clean_text:
+            self._set_state(ConversationState.LISTENING)
+            return None
+
         logger.info("Synthesizing speech...")
-        audio_response = self.tts.synthesize(response_text)
+        audio_response = self.tts.synthesize(clean_text)
 
         if not audio_response:
             self._set_state(ConversationState.LISTENING)
