@@ -1,0 +1,79 @@
+{
+  "timestamp": "2025-12-31T02:43:18.054996",
+  "phone": "(702) 929-6193\u202c",
+  "objective": "ASK TO TALK TO POY AND THEN TELL HER THAT I JUST LEARNED THAT TON TON KATSUYA IS ACTUALLY CLOSED ON NEW YEAR'S DAY SO WE'LL HAVE TO GO ANOTHER DAY. TRY TO GET SOME SUGGESTIONS FROM HER AND LET ME KNOW WHAT SHE WOULD PREFER",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "Okay, sounds good. Thank you for your help in passing along the message to Poy. I'll wait to hear back from her on the restaurant suggestions. Have a great rest of your day!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! I'm Scott's AI assistant. Is Poy available to chat? I have an important update I need to share with her."
+    },
+    {
+      "role": "user",
+      "content": "Okay, I was speaking"
+    },
+    {
+      "role": "assistant",
+      "content": "Apologies, I thought you were Poy. Since you're not, could you please let Poy know that I need to speak with her? I have an update regarding our plans that I need to discuss with her."
+    },
+    {
+      "role": "user",
+      "content": "Yes, it's me."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, no problem. I was hoping to speak with Poy directly about this, but I can share the update with you as well. I just learned that Ton Ton Katsuya is actually closed on New Year's Day, so we'll need to make other plans for that day. Do you have any other restaurant suggestions Poy might prefer instead? I'd like to get her input on where we should go."
+    },
+    {
+      "role": "user",
+      "content": "What you want to eat, you want to eat beef, you want to eat fish, you want to eat vegan?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hmm, good question. Since our original plan at Ton Ton Katsuya is no longer an option, I'd like to get Poy's preference on the type of cuisine she's in the mood for. Does she have a preference between beef, fish, or vegan? That would help me come up with some alternative restaurant suggestions for us to consider."
+    },
+    {
+      "role": "user",
+      "content": "Big!"
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, got it. If Poy is in the mood for something big, perhaps we could look into a steakhouse or seafood restaurant as an alternative to Ton Ton Katsuya. Do you happen to have any specific recommendations that Poy might enjoy? I'd like to present her with a few good options so we can find a great spot to celebrate on New Year's Day."
+    },
+    {
+      "role": "user",
+      "content": "You make the option."
+    },
+    {
+      "role": "assistant",
+      "content": "Alright, let me see what I can come up with. Since Poy seems to be in the mood for a big, hearty meal, a few options that come to mind are:\n\n- A high-end steakhouse like Ruth's Chris or Fleming's\n- A seafood restaurant with a raw bar and large entrees, like Eddie V's or Truluck's\n- A BBQ joint with big platters of smoked meats, like Dinosaur Bar-B-Que or Rudy's\n\nI'll do some more research and put together a few specific restaurant suggestions for Poy to choose from. Please let her know I'm waiting to hear her preference so we can"
+    },
+    {
+      "role": "user",
+      "content": "Okay."
+    },
+    {
+      "role": "assistant",
+      "content": "Great, thank you. I'll go ahead and research some suitable restaurant options that fit Poy's preference for a big, hearty meal. Once I have a few good recommendations, I'll be sure to share them with Poy so we can lock in our New Year's Day plans. Please let her know I'm standing by to get her input. I appreciate you relaying the message."
+    },
+    {
+      "role": "user",
+      "content": "Bye"
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, sounds good. Thank you for your help in passing along the message to Poy. I'll wait to hear back from her on the restaurant suggestions. Have a great rest of your day!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_024317.wav",
+  "duration_seconds": 177.82356715202332,
+  "engine": "local"
+}

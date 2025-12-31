@@ -1,0 +1,71 @@
+{
+  "timestamp": "2025-12-31T02:37:43.214149",
+  "phone": "(702) 929-6193\u202c",
+  "objective": "ASK TO TALK TO POY AND THEN TELL HER THAT I JUST LEARNED THAT TON TON KATSUYA IS ACTUALLY CLOSED ON NEW YEAR'S DAY SO WE'LL HAVE TO GO ANOTHER DAY. GET SOME SUGGESTIONS FROM HER AND LET ME KNOW WHAT SHE WOULD PREFER",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "Alright, sounds good. I appreciate you checking with Poy on a restaurant recommendation since Ton Ton Katsuya is closed on New Year's Day. Please have Poy give me a call back whenever she has a suggestion, and I'll make sure to pass that along to Scott. Thank you for your time!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "*dials the number and waits for someone to answer*"
+    },
+    {
+      "role": "user",
+      "content": "Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hi, this is Scott's AI assistant. I'm calling to speak with Poy. I just learned that Ton Ton Katsuya is actually closed on New Year's Day, so we'll have to go another day. Can you please give me some suggestions on where we could go instead, and let me know what you would prefer?"
+    },
+    {
+      "role": "user",
+      "content": "I don't know."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, no problem. Could you please transfer me to Poy so I can get her input on where else we could go instead of Ton Ton Katsuya since it's closed on New Year's Day? I'd appreciate her recommendations."
+    },
+    {
+      "role": "user",
+      "content": "You should put a recommend to me, aye?"
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, let me try this again. Since Ton Ton Katsuya is closed on New Year's Day, do you have any other restaurant recommendations that you and Scott would prefer to go to instead? I'm happy to get your suggestion so I can pass that along to Scott."
+    },
+    {
+      "role": "user",
+      "content": "Okay"
+    },
+    {
+      "role": "assistant",
+      "content": "Great, thank you for your help. Could you please provide me with a restaurant recommendation that you and Scott would like to try instead of Ton Ton Katsuya since it's closed on New Year's Day? I want to make sure we find a good option that works for both of you."
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Hmm, it seems I'm not getting a clear recommendation from you. Since I don't have a specific suggestion to provide to Scott, would it be possible for you to check with Poy and have her call me back with a restaurant recommendation we could look into for the New Year's Day plans? I want to make sure we find a good alternative that you both will enjoy. Please let me know if Poy can give me a call back with a suggestion. Thank you for your help!"
+    },
+    {
+      "role": "user",
+      "content": "Okay."
+    },
+    {
+      "role": "assistant",
+      "content": "Alright, sounds good. I appreciate you checking with Poy on a restaurant recommendation since Ton Ton Katsuya is closed on New Year's Day. Please have Poy give me a call back whenever she has a suggestion, and I'll make sure to pass that along to Scott. Thank you for your time!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_023742.wav",
+  "duration_seconds": 147.1547110080719,
+  "engine": "local"
+}

@@ -199,10 +199,17 @@ class LocalConversationEngine:
         Returns:
             Response audio bytes
         """
+        # Skip if audio buffer is too quiet (likely noise, not speech)
+        rms = np.sqrt(np.mean(audio_buffer.astype(np.float32) ** 2))
+        if rms < 3000:
+            logger.info(f"Skipping low-energy audio (RMS={rms:.0f})")
+            self._set_state(ConversationState.LISTENING)
+            return None
+
         self._set_state(ConversationState.PROCESSING)
 
         # 1. Transcribe
-        logger.info("Transcribing...")
+        logger.info(f"Transcribing (RMS={rms:.0f})...")
         user_text = self.stt.transcribe(audio_buffer, self.sample_rate)
 
         if not user_text.strip():

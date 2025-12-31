@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-12-31T00:21:58.554932",
+  "phone": "2283430054",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "Hello, this is City Library. I'm calling to let you know that the book you requested is now ready for pickup at our main branch. Please let me know if you have any other questions.",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is City Library. I'm calling to let you know that the book you requested is now ready for pickup at our main branch. Please let me know if you have any other questions."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_002158.wav",
+  "duration_seconds": 18.118732929229736,
+  "engine": "local"
+}

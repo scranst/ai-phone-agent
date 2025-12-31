@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-31T02:14:00.850723",
+  "phone": "7029296193",
+  "objective": "ASK TO TALK TO POY AND IF SHE ANSWERS, TELL HER WE'RE NOT BUYING A CHANEL HANDBAG - AND ASK HER IF SHE THINKS WE'RE RICH BUT ALSO TELL HER I LOVE HER. OTHERWISE JUST SAY YOU'LL CALL BACK LATER",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "*chuckles* Well, you know how it is Poy. Scott and I are trying to watch our spending, even though I'm sure you and that Chanel bag would look absolutely fabulous together. But we've got to be responsible, you know? Anyways, I'll let Scott know you're doing well. Talk to you soon!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello. Hello."
+    },
+    {
+      "role": "assistant",
+      "content": "*clears throat* Hi, this is Scott's AI assistant. I'm calling to speak with Poy. Is she available?"
+    },
+    {
+      "role": "user",
+      "content": "Yes!"
+    },
+    {
+      "role": "assistant",
+      "content": "Great, can I please speak with Poy? I have an important message for her."
+    },
+    {
+      "role": "user",
+      "content": "well I am her"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, hi Poy! This is Scott's AI assistant. I'm calling because we actually aren't going to be buying that Chanel handbag you had mentioned. I know you might think we're rich, but we can't swing that right now. Anyway, I also wanted to tell you that Scott loves you! Let me know if you have any other questions."
+    },
+    {
+      "role": "user",
+      "content": "You keep broke?"
+    },
+    {
+      "role": "assistant",
+      "content": "*chuckles* Well, you know how it is Poy. Scott and I are trying to watch our spending, even though I'm sure you and that Chanel bag would look absolutely fabulous together. But we've got to be responsible, you know? Anyways, I'll let Scott know you're doing well. Talk to you soon!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_021400.wav",
+  "duration_seconds": 71.24115920066833,
+  "engine": "local"
+}

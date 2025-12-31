@@ -112,8 +112,8 @@ class PhoneAgentLocal:
             logger.info("Call connected!")
             self._call_active = True
 
-            # Wait for connection tones to fully settle before listening
-            await asyncio.sleep(2.5)
+            # Brief delay for connection to stabilize (energy filter handles noise)
+            await asyncio.sleep(0.1)
 
             # 5. Start conversation
             conv_config = ConversationConfig(

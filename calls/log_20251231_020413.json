@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-31T02:04:13.793067",
+  "phone": "7029296193",
+  "objective": "ASK TO TALK TO POY. IF SHE ANSWERS, TELL HER WE'RE NOT GOING ON A CRUISE - AND ASK HER IF SHE THINKS WE'RE RICH. IF ANYONE ELSE ANSWERS JUST ASK FOR POY.",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "Ah I see, my apologies. Since Poy is not available, is there anything I can assist you with? I'm calling on behalf of Scott.",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Rawr."
+    },
+    {
+      "role": "assistant",
+      "content": "*clears throat* Hello, this is AI Assistant for Scott. I'd like to speak with Poy, please."
+    },
+    {
+      "role": "user",
+      "content": "I'm speaking"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is AI Assistant for Scott. We're not going on a cruise - do you think we're rich? Can I please speak with Poy?"
+    },
+    {
+      "role": "user",
+      "content": "I'm faking."
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, but I need to speak with Poy. Could you please let me know if she is available?"
+    },
+    {
+      "role": "user",
+      "content": "I'm talking to you right now."
+    },
+    {
+      "role": "assistant",
+      "content": "Ah I see, my apologies. Since Poy is not available, is there anything I can assist you with? I'm calling on behalf of Scott."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_020413.wav",
+  "duration_seconds": 60.48407602310181,
+  "engine": "local"
+}

@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-12-31T02:32:16.184293",
+  "phone": "(702) 929-6193\u202c",
+  "objective": "ASK TO TALK TO POY AND THEN ASK HER IF SHE WANTS TO GO ON A DATE TO TON TON KATSUYA ON NEW YEARS DAY",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "*after Poy responds* Oh, I see. No problem, Poy. Thank you for your time, and I hope you have a wonderful rest of your day.",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello."
+    },
+    {
+      "role": "assistant",
+      "content": "*calling Poy* Hello, this is Scott's AI assistant. I was hoping to speak with Poy. Is she available?"
+    },
+    {
+      "role": "user",
+      "content": "Hey"
+    },
+    {
+      "role": "assistant",
+      "content": "*after Poy answers* Hi Poy, this is Scott's AI assistant. I was wondering if you'd be interested in going on a date with Scott to Ton Ton Katsuya on New Year's Day?"
+    },
+    {
+      "role": "user",
+      "content": "Okay, in the morning I can."
+    },
+    {
+      "role": "assistant",
+      "content": "*responds to Poy* Great, Poy! Scott would love to take you to Ton Ton Katsuya for brunch on New Year's Day morning. Does that work well for you? I'm happy to get the details finalized."
+    },
+    {
+      "role": "user",
+      "content": "Bye!"
+    },
+    {
+      "role": "assistant",
+      "content": "Wonderful, Poy. I'll let Scott know you're available for the New Year's Day brunch date at Ton Ton Katsuya. Thank you, and have a great rest of your day!"
+    },
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "*after Poy responds* Oh, I see. No problem, Poy. Thank you for your time, and I hope you have a wonderful rest of your day."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_023215.wav",
+  "duration_seconds": 61.52434301376343,
+  "engine": "local"
+}

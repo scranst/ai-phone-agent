@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T01:39:58.253170",
+  "phone": "2283430054",
+  "objective": "ORDER A HAM AND PINEAPPLE PIZZA",
+  "context": {
+    "DELIVERY ADDRESS": "FOUR SEVEN ZERO TWO RANDALL DRIVE"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173998.253115,
+  "engine": "local"
+}

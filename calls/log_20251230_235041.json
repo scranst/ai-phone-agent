@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-12-30T23:50:41.797493",
+  "phone": "7252878970",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "Yes, I can hear you. How may I assist you today?",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "If you have any questions, please leave them in the comments below and I will see you in the next video."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is City Library calling. I'm contacting you to let you know that the book you requested is now ready for pickup. Please let me know if you have any other questions."
+    },
+    {
+      "role": "user",
+      "content": "Can you hear me?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, I can hear you. How may I assist you today?"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_235041.wav",
+  "duration_seconds": 20.417951107025146,
+  "engine": "local"
+}

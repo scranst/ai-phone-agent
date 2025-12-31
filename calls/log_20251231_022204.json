@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T02:22:04.470995",
+  "phone": "2283430054",
+  "objective": "CALL THE SHOE STORE AND ASK IF THEY HAVE ANY SIZE 15 SHOES. IF SO, FIND OUT WHAT BRANDS AND STYLES THEY HAVE IN STOCK",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767176524.4709592,
+  "engine": "local"
+}

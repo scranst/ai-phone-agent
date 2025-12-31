@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T02:02:33.944230",
+  "phone": "7029296193",
+  "objective": "ASK TO TALK TO POY. IF SHE ANSWERS, TELL HER WE'RE NOT GOING ON A CRUISE - AND ASK HER IF SHE THINKS WE'RE RICH. IF ANYONE ELSE ANSWERS JUST ASK FOR POY.",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767175353.944204,
+  "engine": "local"
+}

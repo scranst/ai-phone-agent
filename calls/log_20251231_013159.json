@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T01:31:59.145874",
+  "phone": "2283430054",
+  "objective": "order a pepperoni pizza",
+  "context": {
+    "delivery address": "4702 randall drive las vegas nevada"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173519.145837,
+  "engine": "local"
+}

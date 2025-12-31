@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T01:38:01.527438",
+  "phone": "2283430054",
+  "objective": "ORDER A SAUSAGE PIZZA",
+  "context": {
+    "DELIVERY ADDRESS": "4702 RANDALL DRIVE LAS VEGAS"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173881.527369,
+  "engine": "local"
+}

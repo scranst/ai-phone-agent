@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-12-31T00:06:34.939713",
+  "phone": "2283430054",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "Ah I see, my apologies. In addition to Moby Dick, some of Herman Melville's other well-known works include Bartleby, the Scrivener, Billy Budd, and The Confidence-Man. Melville was a prolific 19th century American novelist and short story writer. Please let me know if you need any other details about his literary works.",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello? Hello? Hello? Hello?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is City Library. I'm calling to let you know that the book you had on hold is now ready for pickup. Please let me know if you have any other questions!"
+    },
+    {
+      "role": "user",
+      "content": "Uh, yeah, what's a book by Herman Melville?"
+    },
+    {
+      "role": "assistant",
+      "content": "One of Herman Melville's most famous works is Moby Dick, the classic novel about a whaling captain's obsessive pursuit of a great white whale."
+    },
+    {
+      "role": "user",
+      "content": "Oh thanks, thanks for that."
+    },
+    {
+      "role": "assistant",
+      "content": "You're welcome. Just to confirm, your book is available for pickup at City Library whenever you're able to come by. Please let me know if you need anything else."
+    },
+    {
+      "role": "user",
+      "content": "Yeah, does Harry and Melville have any other books?"
+    },
+    {
+      "role": "assistant",
+      "content": "I believe you may be combining the authors Herman Melville and J.K. Rowling, who wrote the Harry Potter series. Melville is known primarily for classic novels like Moby Dick, but did not write any books about Harry Potter. Let me know if you need any other information!"
+    },
+    {
+      "role": "user",
+      "content": "I didn't say Harry Potter, I asked if there were any other Herman Melville books."
+    },
+    {
+      "role": "assistant",
+      "content": "Ah I see, my apologies. In addition to Moby Dick, some of Herman Melville's other well-known works include Bartleby, the Scrivener, Billy Budd, and The Confidence-Man. Melville was a prolific 19th century American novelist and short story writer. Please let me know if you need any other details about his literary works."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_000634.wav",
+  "duration_seconds": 110.87815189361572,
+  "engine": "local"
+}

@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-31T01:50:20.639146",
+  "phone": "2283430054",
+  "objective": "ORDER A HAWAIIAN PIZZA",
+  "context": {
+    "DELIVERY ADDRESS": "FOUR SEVEN ZERO TWO RANDALL DRIVE"
+  },
+  "success": true,
+  "summary": "Wonderful, I've got the order placed for a medium Hawaiian pizza to be delivered to 4702 Randall Drive in the next 30 minutes. Thank you for your order, I appreciate your business. Have a great rest of your day!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Oh"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is [Assistant's name] calling on behalf of a customer. I'd like to place an order for a Hawaiian pizza to be delivered to 4702 Randall Drive. What size and any other details would you need for the order?"
+    },
+    {
+      "role": "user",
+      "content": "Yeah, what size do you need?"
+    },
+    {
+      "role": "assistant",
+      "content": "A medium Hawaiian pizza, please. What time would be best for the delivery?"
+    },
+    {
+      "role": "user",
+      "content": "Ah, yeah, I'm good to you like 30 minutes."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, great. I'll have a medium Hawaiian pizza delivered to 4702 Randall Drive within the next 30 minutes. Is there anything else I can get for you today?"
+    },
+    {
+      "role": "user",
+      "content": "Um, that you can get from me."
+    },
+    {
+      "role": "assistant",
+      "content": "Wonderful, I've got the order placed for a medium Hawaiian pizza to be delivered to 4702 Randall Drive in the next 30 minutes. Thank you for your order, I appreciate your business. Have a great rest of your day!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_015020.wav",
+  "duration_seconds": 73.88570189476013,
+  "engine": "local"
+}

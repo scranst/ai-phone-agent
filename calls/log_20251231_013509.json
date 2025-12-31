@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-12-31T01:35:09.883050",
+  "phone": "2283430054",
+  "objective": "order a pepperoni pizzA",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173709.883043,
+  "engine": "local"
+}

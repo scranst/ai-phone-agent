@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-12-31T01:36:21.805700",
+  "phone": "2283430054",
+  "objective": "ORDER A PEPPERONI PIZZA",
+  "context": {},
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173781.8056362,
+  "engine": "local"
+}

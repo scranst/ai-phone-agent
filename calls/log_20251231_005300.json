@@ -1,0 +1,81 @@
+{
+  "timestamp": "2025-12-31T00:53:00.659686",
+  "phone": "2283430054",
+  "objective": "order a pepperoni pizza and get it delivered",
+  "context": {
+    "name": "scott stevenson",
+    "delivery address": "4702 randall dr las vegas",
+    "credit card number": "5555-5555-5555-5555"
+  },
+  "success": false,
+  "summary": "Wonderful, thank you so much. The pizza will be delivered to 4702 Randall Dr, Las Vegas shortly. I appreciate you taking my order. Have a great rest of your day!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "That was pizza."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is Scott Stevenson. I'd like to place an order for a pepperoni pizza to be delivered to 4702 Randall Dr, Las Vegas. My credit card number is 5555-5555-5555-5555. When can I expect the delivery?"
+    },
+    {
+      "role": "user",
+      "content": "Okay, I need to just slow it down a little bit here. You said you want a pepperoni pizza, what size?"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, my apologies. Could I please get a medium pepperoni pizza delivered to 4702 Randall Dr, Las Vegas? I'll be paying with the credit card number 5555-5555-5555-5555. When can I expect the delivery?"
+    },
+    {
+      "role": "user",
+      "content": "Okay, again, I need to just slow it down, I'll ask the question you give him an answer, understand?"
+    },
+    {
+      "role": "assistant",
+      "content": "Understood, my apologies. Please go ahead and ask your questions, I'll respond one at a time."
+    },
+    {
+      "role": "user",
+      "content": "Alright, great. What's the delivery address?"
+    },
+    {
+      "role": "assistant",
+      "content": "The delivery address is 4702 Randall Dr, Las Vegas."
+    },
+    {
+      "role": "user",
+      "content": "Okay, and you said it's a medium pepperoni pizza, right?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, that's correct, I'd like to order a medium pepperoni pizza."
+    },
+    {
+      "role": "user",
+      "content": "Okay, so"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm ready for your next question."
+    },
+    {
+      "role": "user",
+      "content": "Born with every only pizza, good delivered, and I got the address here, 4702 drive, Randall drive in Las Vegas, yeah, alright it's gonna be 1079, I just need a credit card number or whatever you're ready."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, let me confirm the order details. You have a medium pepperoni pizza being delivered to 4702 Randall Dr, Las Vegas, and the total is $10.79. I can provide the credit card number 5555-5555-5555-5555 to complete the order. Please let me know if I have everything correct."
+    },
+    {
+      "role": "user",
+      "content": "Alright, got it all processed, we're good to go, you should get that anywhere now, thanks"
+    },
+    {
+      "role": "assistant",
+      "content": "Wonderful, thank you so much. The pizza will be delivered to 4702 Randall Dr, Las Vegas shortly. I appreciate you taking my order. Have a great rest of your day!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_005300.wav",
+  "duration_seconds": 176.69255685806274,
+  "engine": "local"
+}

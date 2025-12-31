@@ -1,0 +1,79 @@
+{
+  "timestamp": "2025-12-31T02:24:23.772471",
+  "phone": "2283430054",
+  "objective": "CALL THE SHOE STORE AND ASK IF THEY HAVE ANY SIZE 15 SHOES. IF SO, FIND OUT WHAT BRANDS AND STYLES THEY HAVE IN STOCK",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": true,
+  "summary": "Thank you, you too! Goodbye.\n\n*ends call*",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Thanks, Colin. Supergirl."
+    },
+    {
+      "role": "assistant",
+      "content": "*calls the shoe store*\n\nHello, this is Scott's AI assistant. I'm calling to ask if you have any size 15 shoes in stock. If so, what brands and styles do you have available?"
+    },
+    {
+      "role": "user",
+      "content": "Let me check real quick."
+    },
+    {
+      "role": "assistant",
+      "content": "*waits patiently on the line*"
+    },
+    {
+      "role": "user",
+      "content": "Oh yeah, you know, we have some thought part in boots in size 15."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, great. Can you tell me more about the specific styles and brands you have in size 15 boots?"
+    },
+    {
+      "role": "user",
+      "content": "mmm mmm mmm mmm mmm"
+    },
+    {
+      "role": "assistant",
+      "content": "*waits patiently for the employee to provide more details*"
+    },
+    {
+      "role": "user",
+      "content": "Dr. Barton Boots."
+    },
+    {
+      "role": "assistant",
+      "content": "Alright, thank you. Do you have any other size 15 boot styles besides the Dr. Barton brand in stock?"
+    },
+    {
+      "role": "user",
+      "content": "Yeah, we have some new balance shoes and size 15 as well."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, good to know. So in summary, you have Dr. Barton boots and New Balance shoes available in size 15. Is that correct?"
+    },
+    {
+      "role": "user",
+      "content": "Yep!"
+    },
+    {
+      "role": "assistant",
+      "content": "Wonderful, thank you so much for checking on that and providing the details. I really appreciate you taking the time to look into the size 15 options you have in stock. That's very helpful for me and my client Scott."
+    },
+    {
+      "role": "user",
+      "content": "Alright, well thanks, have a great day, bye bye."
+    },
+    {
+      "role": "assistant",
+      "content": "Thank you, you too! Goodbye.\n\n*ends call*"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_022423.wav",
+  "duration_seconds": 95.63235116004944,
+  "engine": "local"
+}

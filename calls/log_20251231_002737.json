@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-12-31T00:27:37.409318",
+  "phone": "2283430054",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "The book [book title] was written by [author name].",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "Hello. Hello."
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, this is City Library calling. I'm reaching out to let you know that the book you requested, [book title], is now ready for pickup at the library. Please let me know if you have any questions or when you'd like to come by to collect it."
+    },
+    {
+      "role": "user",
+      "content": "Yeah, who wrote that book?"
+    },
+    {
+      "role": "assistant",
+      "content": "The book [book title] was written by [author name]."
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_002737.wav",
+  "duration_seconds": 33.12915802001953,
+  "engine": "local"
+}

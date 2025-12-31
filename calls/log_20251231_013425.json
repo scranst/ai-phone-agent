@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T01:34:25.091665",
+  "phone": "2283430054",
+  "objective": "order a pepperoni pizza",
+  "context": {
+    "delivery address": "four seven zero two randall drive"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767173665.091606,
+  "engine": "local"
+}

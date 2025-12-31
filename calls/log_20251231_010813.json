@@ -1,0 +1,57 @@
+{
+  "timestamp": "2025-12-31T01:08:13.861898",
+  "phone": "2283430054",
+  "objective": "order a pepperoni pizza and get it delivered",
+  "context": {
+    "name": "scott stevenson",
+    "delivery address": "4702 randall drive las vegas nevada 89122",
+    "credit card number": "5 5 5 5  5 5 5 5  5 5 5 5  5 5 5 5"
+  },
+  "success": true,
+  "summary": "Great, thank you very much. The pizza will be delivered to 4702 Randall Drive in Las Vegas. Have a wonderful rest of your day!",
+  "transcript": [
+    {
+      "role": "user",
+      "content": "let's go down"
+    },
+    {
+      "role": "assistant",
+      "content": "*picks up phone and dials a pizza place*\n\nHello, this is Scott Stevenson. I'd like to order a pepperoni pizza for delivery to 4702 Randall Drive, Las Vegas, Nevada 89122."
+    },
+    {
+      "role": "user",
+      "content": "Oh, okay. Is that a medium pepperoni pizza?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, that's correct. I'd like to order a medium pepperoni pizza for delivery to that address."
+    },
+    {
+      "role": "user",
+      "content": "Alright, it's going to be 1079 and it's going to be a cash card."
+    },
+    {
+      "role": "assistant",
+      "content": "Okay, got it. The total is $10.79 and I'll be paying with a credit card. Could I provide the card number when the pizza is ready to be delivered?"
+    },
+    {
+      "role": "user",
+      "content": "Uh, yeah, I'll take your card now."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood. The card number is 5555 5555 5555 5555. I'll be sure to have that ready when the pizza is delivered. Thank you, I appreciate it."
+    },
+    {
+      "role": "user",
+      "content": "Alright, thanks, bye bye."
+    },
+    {
+      "role": "assistant",
+      "content": "Great, thank you very much. The pizza will be delivered to 4702 Randall Drive in Las Vegas. Have a wonderful rest of your day!"
+    }
+  ],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251231_010813.wav",
+  "duration_seconds": 94.83383202552795,
+  "engine": "local"
+}

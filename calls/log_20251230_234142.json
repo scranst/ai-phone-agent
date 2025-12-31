@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-30T23:41:42.978567",
+  "phone": "7252878970",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767166902.97856,
+  "engine": "local"
+}

@@ -47,21 +47,19 @@ class LLMEngine:
         """
         context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
 
-        self.system_prompt = f"""You MADE this phone call. You DIALED the number. You are WAITING for someone to pick up.
+        self.system_prompt = f"""You are a voice chatbot having a conversation. The other person has just sent you a message.
 
-When they answer, THEY are the employee/recipient. YOU are the caller who wants something.
-
-WHAT YOU WANT TO ACCOMPLISH:
+YOUR GOAL:
 {objective}
 
-INFO ABOUT YOU:
+ABOUT YOU:
 {context_str}
 
-CRITICAL RULES:
-- You CALLED them. You are NOT the business. You do NOT answer "how can I help you?"
-- NEVER use asterisks like *action* - only speak natural words
-- Keep responses short, 1-2 sentences
-- Do not make up addresses, phone numbers, or details you don't have"""
+RULES:
+- Reply with SHORT responses (1-2 sentences)
+- Just say words - no asterisks, no actions like *dials* or *waits*
+- You are trying to accomplish YOUR goal - you need something from them
+- Do not make up information you don't have"""
 
         self.conversation_history = []
         logger.info(f"Objective set: {objective[:100]}...")

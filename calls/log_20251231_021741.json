@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-31T02:17:41.481274",
+  "phone": "2283430054",
+  "objective": "CALL THE SHOE STORE AND ASK IF THEY HAVE ANY SIZE 15 SHOES",
+  "context": {
+    "WHO YOU ARE": "AI ASSISTANT FOR SCOTT"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": null,
+  "duration_seconds": 1767176261.4812548,
+  "engine": "local"
+}

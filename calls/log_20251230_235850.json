@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-12-30T23:58:50.778799",
+  "phone": "7252878970",
+  "objective": "You are calling from City Library to remind someone their book is ready for pickup.",
+  "context": {
+    "library": "City Library"
+  },
+  "success": false,
+  "summary": "",
+  "transcript": [],
+  "recording_path": "/Users/scottstevenson/ai-phone-agent/calls/call_20251230_235850.wav",
+  "duration_seconds": 1767167930.778786,
+  "engine": "local"
+}
