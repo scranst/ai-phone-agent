@@ -10,8 +10,9 @@ models/
 # OS
 .DS_Store
 
-# Call recordings (large files)
+# Call recordings and logs (large files + personal data)
 calls/*.wav
+calls/*.json
 
 # IDE
 .vscode/

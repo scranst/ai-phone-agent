@@ -102,7 +102,7 @@ class LocalConversationEngine:
         )
 
         self.stt = SpeechToText(
-            model_size="small.en",  # Upgraded from base.en for better accuracy
+            model_size="small.en",  # Good balance of speed and accuracy
             device="cpu",
             compute_type="int8"
         )
@@ -111,7 +111,11 @@ class LocalConversationEngine:
             output_sample_rate=self.sample_rate
         )
 
-        self.llm = LLMEngine()
+        import config as app_config
+        self.llm = LLMEngine(
+            provider=app_config.LLM_PROVIDER,
+            model=app_config.LLM_MODEL or None
+        )
 
         logger.info("Local conversation engine initialized")
 
@@ -150,6 +154,48 @@ class LocalConversationEngine:
 
         self._set_state(ConversationState.LISTENING)
         logger.info("Conversation started - listening for speech")
+
+    def get_initial_greeting(self) -> str:
+        """
+        Generate initial greeting for when call connects.
+
+        Returns:
+            Greeting text from LLM
+        """
+        greeting = self.llm.get_initial_greeting()
+        logger.info(f"Initial greeting: {greeting}")
+
+        # Add to transcript
+        self.transcript.append({"role": "assistant", "content": greeting})
+
+        if self._transcript_callback:
+            self._transcript_callback("assistant", greeting)
+
+        return greeting
+
+    def synthesize_greeting(self, text: str) -> Optional[bytes]:
+        """
+        Synthesize greeting text to audio.
+
+        Args:
+            text: Greeting text to synthesize
+
+        Returns:
+            Audio bytes or None
+        """
+        import re
+
+        # Clean text (same as in _process_utterance)
+        clean_text = re.sub(r'\*[^*]+\*', '', text).strip()
+        clean_text = re.sub(r'\[TRANSFER\]', '', clean_text).strip()
+        clean_text = re.sub(r'\[CALLBACK\]', '', clean_text).strip()
+        clean_text = ' '.join(clean_text.split())
+
+        if not clean_text:
+            return None
+
+        logger.info("Synthesizing greeting...")
+        return self.tts.synthesize(clean_text)
 
     def stop(self):
         """Stop the conversation"""
@@ -209,11 +255,8 @@ class LocalConversationEngine:
             self._set_state(ConversationState.LISTENING)
             return None
 
-        # Skip if audio is too loud (likely phone tones, not speech)
-        if rms > 8000:
-            logger.info(f"Skipping high-energy audio (RMS={rms:.0f}) - likely phone tone")
-            self._set_state(ConversationState.LISTENING)
-            return None
+        # Note: Removed max RMS filter since AI speaks first now.
+        # No longer need to filter initial connection tones.
 
         self._set_state(ConversationState.PROCESSING)
 
@@ -290,9 +333,16 @@ class LocalConversationEngine:
         """
         self._is_speaking = is_speaking
 
-        if not is_speaking and self.state == ConversationState.SPEAKING:
-            # Done speaking, go back to listening
-            self._set_state(ConversationState.LISTENING)
+        if not is_speaking:
+            # Reset VAD to clear any buffered audio from TTS playback
+            # This prevents echo/stale audio from triggering false detections
+            if self.vad:
+                self.vad.reset()
+                logger.debug("VAD reset after speaking")
+
+            if self.state == ConversationState.SPEAKING:
+                # Done speaking, go back to listening
+                self._set_state(ConversationState.LISTENING)
 
     def get_result(self) -> ConversationResult:
         """Get conversation result"""

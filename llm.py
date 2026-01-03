@@ -1,5 +1,5 @@
 """
-LLM Engine using Claude Haiku
+LLM Engine - supports Claude Haiku and local Ollama models
 
 Generates conversational responses for phone calls.
 """
@@ -12,30 +12,47 @@ import config
 
 logger = logging.getLogger(__name__)
 
+# Try to import ollama
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+
 
 class LLMEngine:
-    """Claude Haiku client for generating phone conversation responses"""
+    """LLM client for generating phone conversation responses"""
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: str = "claude-3-5-haiku-latest"
+        provider: str = "claude",  # "claude" or "ollama"
+        model: Optional[str] = None,
+        api_key: Optional[str] = None
     ):
         """
         Initialize LLM engine.
 
         Args:
-            api_key: Anthropic API key (uses config if not provided)
-            model: Model to use
+            provider: "claude" for Claude API, "ollama" for local Ollama
+            model: Model to use (defaults based on provider)
+            api_key: Anthropic API key (only for Claude)
         """
-        self.api_key = api_key or config.ANTHROPIC_API_KEY
-        self.model = model
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.provider = provider
+
+        if provider == "ollama":
+            if not OLLAMA_AVAILABLE:
+                raise ImportError("ollama package not installed. Run: pip install ollama")
+            self.model = model or "llama3:8b"
+            self.client = None
+            logger.info(f"LLM engine initialized (provider=ollama, model={self.model})")
+        else:
+            self.api_key = api_key or config.ANTHROPIC_API_KEY
+            self.model = model or "claude-3-5-haiku-latest"
+            self.client = anthropic.Anthropic(api_key=self.api_key)
+            logger.info(f"LLM engine initialized (provider=claude, model={self.model})")
 
         self.system_prompt = ""
         self.conversation_history = []
-
-        logger.info(f"LLM engine initialized (model={model})")
 
     def set_objective(self, objective: str, context: dict):
         """
@@ -58,8 +75,15 @@ class LLMEngine:
 
         context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
 
+        # Get current date/time for context awareness
+        from datetime import datetime
+        now = datetime.now()
+        current_datetime = now.strftime("%A, %B %d, %Y at %I:%M %p")
+
         # Build base prompt
         self.system_prompt = f"""You are an AI assistant making a phone call on behalf of a client.
+
+CURRENT DATE/TIME: {current_datetime}
 
 YOUR GOAL:
 {objective}
@@ -119,14 +143,26 @@ STRICT BUDGET: {self.strict_budget}
         })
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=150,  # Keep responses short
-                system=self.system_prompt,
-                messages=self.conversation_history
-            )
+            if self.provider == "ollama":
+                # Use Ollama for local inference
+                messages = [{"role": "system", "content": self.system_prompt}]
+                messages.extend(self.conversation_history)
 
-            assistant_text = response.content[0].text.strip()
+                response = ollama.chat(
+                    model=self.model,
+                    messages=messages,
+                    options={"num_predict": 150}  # Keep responses short
+                )
+                assistant_text = response["message"]["content"].strip()
+            else:
+                # Use Claude API
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=150,  # Keep responses short
+                    system=self.system_prompt,
+                    messages=self.conversation_history
+                )
+                assistant_text = response.content[0].text.strip()
 
             # Add to history
             self.conversation_history.append({
@@ -150,14 +186,25 @@ STRICT BUDGET: {self.strict_budget}
             Initial greeting text
         """
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=100,
-                system=self.system_prompt,
-                messages=[{"role": "user", "content": "Hello?"}]
-            )
-
-            greeting = response.content[0].text.strip()
+            if self.provider == "ollama":
+                messages = [
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": "Hello?"}
+                ]
+                response = ollama.chat(
+                    model=self.model,
+                    messages=messages,
+                    options={"num_predict": 100}
+                )
+                greeting = response["message"]["content"].strip()
+            else:
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=100,
+                    system=self.system_prompt,
+                    messages=[{"role": "user", "content": "Hello?"}]
+                )
+                greeting = response.content[0].text.strip()
 
             # Add the exchange to history
             self.conversation_history = [
@@ -218,16 +265,27 @@ STRICT BUDGET: {self.strict_budget}
         )
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=200,
-                system="You summarize phone calls concisely. Focus on: what was discussed, any commitments made, key information obtained, and the outcome. Keep it to 2-3 sentences.",
-                messages=[{
-                    "role": "user",
-                    "content": f"CALL OBJECTIVE: {objective}\n\nTRANSCRIPT:\n{conversation}\n\nSummarize this call:"
-                }]
-            )
-            return response.content[0].text.strip()
+            summary_system = "You summarize phone calls concisely. Focus on: what was discussed, any commitments made, key information obtained, and the outcome. Keep it to 2-3 sentences."
+            summary_prompt = f"CALL OBJECTIVE: {objective}\n\nTRANSCRIPT:\n{conversation}\n\nSummarize this call:"
+
+            if self.provider == "ollama":
+                response = ollama.chat(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": summary_system},
+                        {"role": "user", "content": summary_prompt}
+                    ],
+                    options={"num_predict": 200}
+                )
+                return response["message"]["content"].strip()
+            else:
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=200,
+                    system=summary_system,
+                    messages=[{"role": "user", "content": summary_prompt}]
+                )
+                return response.content[0].text.strip()
         except Exception as e:
             logger.error(f"Summary error: {e}")
             # Fallback to last assistant message

@@ -112,17 +112,33 @@ class PhoneAgentLocal:
             logger.info("Call connected!")
             self._call_active = True
 
-            # Brief delay for connection to stabilize
-            await asyncio.sleep(0.1)
+            # Wait for audio to stabilize after connection
+            await asyncio.sleep(0.5)
 
-            # 5. Start conversation
+            # 5. Start conversation (sets LLM objective)
             conv_config = ConversationConfig(
                 objective=request.objective,
                 context=request.context
             )
             self.conversation.start(conv_config)
 
-            # 6. Main loop - process audio
+            # 6. AI speaks first - generate and play greeting
+            logger.info("Generating initial greeting...")
+            greeting_text = self.conversation.get_initial_greeting()
+            greeting_audio = self.conversation.synthesize_greeting(greeting_text)
+
+            if greeting_audio:
+                logger.info(f"Playing greeting ({len(greeting_audio)} bytes)")
+                self.conversation.set_speaking(True)
+                await self.audio.write_audio_async(greeting_audio)
+                await asyncio.sleep(0.3)  # Small buffer after audio
+                self.conversation.set_speaking(False)
+
+            # Clear any buffered audio from before/during greeting
+            # This prevents the user's initial "hello" from being processed
+            self.audio.clear_input_buffer()
+
+            # 7. Main loop - process audio (now listening for response)
             await self._run_conversation_loop()
 
             # 7. Get result
@@ -254,6 +270,9 @@ class PhoneAgentLocal:
 
                     # Done speaking
                     self.conversation.set_speaking(False)
+
+                    # Clear any buffered audio to prevent echo/stale data
+                    self.audio.clear_input_buffer()
 
                     # Check if conversation completed
                     if self.conversation.state == ConversationState.COMPLETED:

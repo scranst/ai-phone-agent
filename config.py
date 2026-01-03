@@ -9,6 +9,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 # Anthropic (for Claude Haiku)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# LLM Provider: "claude" or "ollama"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
+LLM_MODEL = os.getenv("LLM_MODEL", "")  # Leave empty for default per provider
+
 # =============================================================================
 # SIM7600 HAT Audio Configuration
 # =============================================================================

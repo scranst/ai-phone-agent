@@ -11,6 +11,34 @@ from faster_whisper import WhisperModel
 
 logger = logging.getLogger(__name__)
 
+# Known Whisper hallucinations (from YouTube training data)
+# These are EXACT phrases that indicate hallucination, not substrings
+WHISPER_HALLUCINATIONS = {
+    "thanks for watching",
+    "thank you for watching",
+    "thanks for watching!",
+    "thank you for watching!",
+    "subscribe to my channel",
+    "like and subscribe",
+    "see you next time",
+    "see you in the next video",
+    "don't forget to subscribe",
+    "please subscribe",
+    "hit the bell",
+    "leave a comment",
+    "subtitles by",
+    "transcribed by",
+    "translated by",
+    "beep",
+    "you",  # Common single-word hallucination
+    "...",
+    # Phone-related hallucinations
+    "phone rings",
+    "the phone rings",
+    "ring ring",
+    "ringing",
+}
+
 
 class SpeechToText:
     """faster-whisper wrapper for local speech recognition"""
@@ -97,8 +125,18 @@ class SpeechToText:
             text_parts = []
             for segment in segments:
                 text_parts.append(segment.text.strip())
+                logger.debug(f"Segment: '{segment.text.strip()}'")
 
             text = " ".join(text_parts).strip()
+
+            if not text:
+                logger.info(f"Whisper returned no text (audio duration: {len(audio_float)/16000:.2f}s)")
+
+            # Filter out known Whisper hallucinations (exact match only)
+            text_lower = text.lower().strip()
+            if text_lower in WHISPER_HALLUCINATIONS:
+                logger.warning(f"Filtered hallucination: '{text}'")
+                return ""
 
             if text:
                 logger.info(f"Transcribed: {text}")

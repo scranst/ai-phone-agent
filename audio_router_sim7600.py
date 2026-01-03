@@ -255,6 +255,18 @@ class AudioRouterSIM7600:
             await asyncio.sleep(0.01)
             return None
 
+    def clear_input_buffer(self):
+        """Clear any buffered input audio (call after TTS to prevent echo)"""
+        cleared = 0
+        while not self._input_queue.empty():
+            try:
+                self._input_queue.get_nowait()
+                cleared += 1
+            except queue.Empty:
+                break
+        if cleared > 0:
+            logger.info(f"Cleared {cleared} buffered audio chunks")
+
     async def read_audio_stream(self) -> AsyncIterator[bytes]:
         """Async iterator for continuous audio reading"""
         while self._is_running:
