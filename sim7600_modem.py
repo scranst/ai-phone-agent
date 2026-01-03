@@ -277,6 +277,11 @@ class SIM7600Modem:
 
     def answer(self) -> bool:
         """Answer an incoming call"""
+        # Enable audio channel before answering
+        self._send_at("AT+CSDVC=1")
+        self._send_at("AT+CLVL=1")
+        self._send_at("AT+CECM=1")
+
         response = self._send_at("ATA")
         if "OK" in response:
             if self.current_call:
@@ -284,6 +289,74 @@ class SIM7600Modem:
             self._notify_state(CallState.CONNECTED)
             return True
         return False
+
+    def wait_for_incoming_call(self, timeout: float = None) -> Optional[str]:
+        """
+        Block until an incoming call is detected.
+
+        Args:
+            timeout: Maximum seconds to wait, or None for indefinite
+
+        Returns:
+            Caller ID phone number, or "Unknown" if not available, or None if timeout
+        """
+        # Enable caller ID (CLIP)
+        self._send_at("AT+CLIP=1")
+
+        start = time.time()
+        while True:
+            if timeout and (time.time() - start) > timeout:
+                return None
+
+            # Check for incoming call
+            if self.current_call and self.current_call.state == CallState.INCOMING:
+                return self.current_call.phone_number
+
+            # Manual check for RING
+            with self._lock:
+                try:
+                    # Try to read unsolicited responses
+                    data = self.dev.read(self._at_ep_in, 512, timeout=500)
+                    response = bytes(data).decode('utf-8', errors='replace')
+
+                    if "RING" in response:
+                        # Extract caller ID if available
+                        number = "Unknown"
+                        if "+CLIP:" in response:
+                            try:
+                                number = response.split('"')[1]
+                            except:
+                                pass
+
+                        self.current_call = CallInfo(
+                            phone_number=number,
+                            state=CallState.INCOMING,
+                            start_time=time.time(),
+                            direction="incoming"
+                        )
+                        self._notify_state(CallState.INCOMING)
+                        logger.info(f"Incoming call from: {number}")
+                        return number
+
+                except usb.core.USBTimeoutError:
+                    pass
+                except Exception as e:
+                    logger.debug(f"Wait for call error: {e}")
+
+            time.sleep(0.2)
+
+    def is_ringing(self) -> bool:
+        """Check if there's currently an incoming call"""
+        return (self.current_call is not None and
+                self.current_call.state == CallState.INCOMING)
+
+    def reject_call(self) -> bool:
+        """Reject an incoming call"""
+        response = self._send_at("AT+CHUP")
+        if self.current_call:
+            self.current_call.end_time = time.time()
+            self.current_call.state = CallState.ENDED
+        return "OK" in response
 
     def hangup(self) -> bool:
         """End the current call"""
@@ -621,6 +694,110 @@ class SIM7600Modem:
             self.dev.write(self.AUDIO_EP_OUT, audio_data, timeout=100)
         except Exception as e:
             logger.debug(f"Audio write error: {e}")
+
+    def send_sms(self, phone_number: str, message: str) -> bool:
+        """
+        Send an SMS message.
+
+        Args:
+            phone_number: Destination phone number
+            message: Text message to send (max ~160 chars for single SMS)
+
+        Returns:
+            True if SMS was sent successfully
+        """
+        if not self.dev:
+            logger.error("Cannot send SMS: Not connected to modem")
+            return False
+
+        # Clean phone number
+        clean_number = "".join(c for c in phone_number if c.isdigit() or c == "+")
+
+        logger.info(f"Sending SMS to {clean_number}: {message[:50]}...")
+
+        try:
+            with self._lock:
+                # Clear any pending data from modem
+                for _ in range(5):
+                    try:
+                        self.dev.read(self._at_ep_in, 512, timeout=100)
+                    except:
+                        break
+
+                # Send a simple AT to make sure modem is responsive
+                cmd = "AT\r\n"
+                self.dev.write(self._at_ep_out, cmd.encode(), 2000)
+                time.sleep(0.3)
+                try:
+                    response = self.dev.read(self._at_ep_in, 512, timeout=500)
+                    if b"OK" not in bytes(response):
+                        logger.warning("Modem not responding to AT, retrying...")
+                        time.sleep(1)
+                except:
+                    pass
+
+                # Set SMS text mode
+                cmd = "AT+CMGF=1\r\n"
+                self.dev.write(self._at_ep_out, cmd.encode(), 2000)
+                time.sleep(0.3)
+
+                # Clear response
+                try:
+                    self.dev.read(self._at_ep_in, 512, timeout=300)
+                except:
+                    pass
+
+                # Start SMS send command
+                cmd = f'AT+CMGS="{clean_number}"\r\n'
+                self.dev.write(self._at_ep_out, cmd.encode(), 2000)
+                time.sleep(0.5)
+
+                # Wait for ">" prompt (may need multiple reads)
+                prompt_found = False
+                for _ in range(5):
+                    try:
+                        response = self.dev.read(self._at_ep_in, 512, timeout=1000)
+                        response_str = bytes(response).decode('utf-8', errors='replace')
+                        if ">" in response_str:
+                            prompt_found = True
+                            break
+                    except usb.core.USBTimeoutError:
+                        continue
+
+                if not prompt_found:
+                    logger.error("SMS failed: No prompt received")
+                    # Send escape to cancel
+                    self.dev.write(self._at_ep_out, b"\x1b", 1000)
+                    return False
+
+                # Send message content followed by Ctrl+Z (0x1A)
+                msg_bytes = (message + chr(26)).encode()
+                self.dev.write(self._at_ep_out, msg_bytes, 5000)
+
+                # Wait for response (can take a few seconds)
+                time.sleep(3)
+                response = bytes()
+                for _ in range(10):
+                    try:
+                        data = self.dev.read(self._at_ep_in, 512, timeout=1000)
+                        response += bytes(data)
+                        if b"OK" in response or b"ERROR" in response:
+                            break
+                    except usb.core.USBTimeoutError:
+                        continue
+
+                response_str = response.decode('utf-8', errors='replace')
+
+                if "OK" in response_str:
+                    logger.info(f"SMS sent successfully to {clean_number}")
+                    return True
+                else:
+                    logger.error(f"SMS failed: {response_str}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"SMS error: {e}")
+            return False
 
 
 # Test function

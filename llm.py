@@ -2,10 +2,12 @@
 LLM Engine - supports Claude Haiku and local Ollama models
 
 Generates conversational responses for phone calls.
+Supports calendar integration for appointment scheduling.
 """
 
 import logging
 from typing import Optional
+from datetime import date, timedelta
 import anthropic
 
 import config
@@ -54,6 +56,43 @@ class LLMEngine:
         self.system_prompt = ""
         self.conversation_history = []
 
+    def _get_calendar_availability(self) -> str:
+        """Get upcoming calendar availability for the next 7 days"""
+        try:
+            from calendar_integration import get_calendar_integration
+
+            calendar = get_calendar_integration()
+            if not calendar:
+                return ""
+
+            self._calendar = calendar  # Store for booking later
+            lines = ["CALENDAR AVAILABILITY (next 7 days):"]
+            today = date.today()
+
+            for i in range(7):
+                check_date = today + timedelta(days=i)
+                slots = calendar.check_availability(check_date)
+
+                if slots:
+                    if i == 0:
+                        day_name = f"Today ({check_date.strftime('%m/%d')})"
+                    elif i == 1:
+                        day_name = f"Tomorrow ({check_date.strftime('%m/%d')})"
+                    else:
+                        day_name = check_date.strftime("%A %m/%d")
+                    slot_times = [slot.start.strftime("%I:%M %p") for slot in slots[:5]]
+                    more = "..." if len(slots) > 5 else ""
+                    lines.append(f"  {day_name}: {', '.join(slot_times)}{more}")
+
+            if len(lines) == 1:
+                lines.append("  No availability in the next 7 days")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            logger.debug(f"Could not get calendar availability: {e}")
+            return ""
+
     def set_objective(self, objective: str, context: dict):
         """
         Set the call objective and context.
@@ -100,6 +139,23 @@ CRITICAL RULES:
 - No asterisks or action words like *pauses*
 - If they ask a question, answer it directly
 - When the goal is achieved, wrap up the call naturally"""
+
+        # Add calendar availability if configured
+        calendar_info = self._get_calendar_availability()
+        if calendar_info:
+            self.system_prompt += f"""
+
+{calendar_info}
+
+SCHEDULING INSTRUCTIONS:
+- If someone wants to schedule an appointment, offer available times from the calendar above
+- ONLY offer times that are listed in the availability above
+- If the requested time isn't listed, say it's not available and suggest times that ARE listed
+- To book an appointment, you need: date, time, name, and phone number (email optional)
+- Once you have ALL required info and the caller confirms, include this EXACT format at the END of your response:
+  [BOOK: date="YYYY-MM-DD" time="HH:MM" name="Full Name" phone="1234567890" email="optional@email.com"]
+- After including [BOOK:...], say you've scheduled it and confirm the details
+- Example: "Perfect, I've scheduled your call with Scott for Monday at 10am. He'll reach you at 555-123-4567. [BOOK: date="2026-01-05" time="10:00" name="James Smith" phone="5551234567"]" """
 
         # Add callback instructions if configured
         if self.transfer_when:
@@ -172,11 +228,65 @@ STRICT BUDGET: {self.strict_budget}
 
             logger.info(f"LLM response: {assistant_text}")
 
-            return assistant_text
+            # Check for booking request and process it
+            self._process_booking(assistant_text)
+
+            # Strip the [BOOK:...] tag from spoken response
+            import re
+            clean_response = re.sub(r'\s*\[BOOK:[^\]]+\]', '', assistant_text).strip()
+
+            return clean_response
 
         except Exception as e:
             logger.error(f"LLM error: {e}")
             return "I'm sorry, I'm having trouble responding. Could you repeat that?"
+
+    def _process_booking(self, response: str):
+        """Parse and process any booking request in the response"""
+        import re
+
+        # Look for [BOOK: ...] pattern
+        match = re.search(r'\[BOOK:\s*date="([^"]+)"\s*time="([^"]+)"\s*name="([^"]+)"\s*phone="([^"]+)"(?:\s*email="([^"]*)")?\]', response)
+
+        if not match:
+            return
+
+        booking_date = match.group(1)
+        booking_time = match.group(2)
+        name = match.group(3)
+        phone = match.group(4)
+        email = match.group(5) or ""
+
+        logger.info(f"Booking request detected: {name} on {booking_date} at {booking_time}")
+
+        # Try to book via calendar API
+        if hasattr(self, '_calendar') and self._calendar:
+            try:
+                from calendar_integration import TimeSlot
+                from datetime import datetime
+
+                # Parse date and time
+                dt = datetime.strptime(f"{booking_date} {booking_time}", "%Y-%m-%d %H:%M")
+                slot = TimeSlot(start=dt, end=dt + timedelta(minutes=30))
+
+                # Attempt booking
+                result = self._calendar.book_appointment(
+                    slot=slot,
+                    name=name,
+                    email=email or f"{phone}@phone.booking",
+                    phone=phone,
+                    notes=f"Booked via AI phone agent"
+                )
+
+                if result.success:
+                    logger.info(f"Booking successful: {result.confirmation_id}")
+                else:
+                    logger.warning(f"Booking failed: {result.message}")
+
+            except Exception as e:
+                logger.error(f"Booking error: {e}")
+        else:
+            logger.warning("No calendar integration available for booking")
 
     def get_initial_greeting(self) -> str:
         """

@@ -1,17 +1,32 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# OpenAI
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# Load settings.json for API keys (takes priority over .env)
+def _load_api_keys():
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path) as f:
+                settings = json.load(f)
+                return settings.get("api_keys", {})
+        except:
+            pass
+    return {}
 
-# Anthropic (for Claude Haiku)
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+_api_keys = _load_api_keys()
 
-# LLM Provider: "claude" or "ollama"
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
-LLM_MODEL = os.getenv("LLM_MODEL", "")  # Leave empty for default per provider
+# OpenAI - settings.json takes priority, then .env
+OPENAI_API_KEY = _api_keys.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "")
+
+# Anthropic (for Claude Haiku) - settings.json takes priority, then .env
+ANTHROPIC_API_KEY = _api_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")
+
+# LLM Provider: "claude" or "ollama" - settings.json takes priority
+LLM_PROVIDER = _api_keys.get("LLM_PROVIDER") or os.getenv("LLM_PROVIDER", "ollama")
+LLM_MODEL = _api_keys.get("LLM_MODEL") or os.getenv("LLM_MODEL", "")  # Leave empty for default per provider
 
 # =============================================================================
 # SIM7600 HAT Audio Configuration

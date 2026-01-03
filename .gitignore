@@ -17,3 +17,6 @@ calls/*.json
 # IDE
 .vscode/
 .idea/
+
+# Settings with API keys
+settings.json

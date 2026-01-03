@@ -21,6 +21,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from agent_local import PhoneAgentLocal, CallRequest, CallResult
+from agent_incoming import IncomingCallHandler
 import config
 
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,10 @@ app = FastAPI(title="AI Phone Agent")
 # Store for active calls and websocket connections
 active_calls: dict = {}
 websocket_connections: list[WebSocket] = []
+
+# Incoming call listener
+incoming_handler: Optional[IncomingCallHandler] = None
+incoming_listener_task: Optional[asyncio.Task] = None
 
 # Settings file path
 SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
@@ -382,6 +387,15 @@ async def home():
         }
         .settings-saved.show { opacity: 1; }
 
+        .saved-indicator {
+            color: #4ade80;
+            font-size: 14px;
+            margin-left: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .saved-indicator.show { opacity: 1; }
+
         /* Cheat Sheet Styles */
         .cheatsheet {
             margin-top: 16px;
@@ -444,7 +458,10 @@ async def home():
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('calls')">Make a Call</button>
+            <button class="tab-btn" onclick="switchTab('incoming')">Incoming</button>
             <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+            <button class="tab-btn" onclick="switchTab('apikeys')">API Keys</button>
+            <button class="tab-btn" onclick="switchTab('integrations')">Integrations</button>
         </div>
 
         <!-- Calls Tab -->
@@ -592,6 +609,19 @@ STRICT_BUDGET: $25</pre>
                 </div>
 
                 <div class="settings-group">
+                    <h4>SMS Notifications</h4>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" id="setting-sms-enabled" style="width: 20px; height: 20px;" />
+                            <span>Send SMS summary after each call</span>
+                        </label>
+                        <p style="color: #888; font-size: 12px; margin-top: 8px;">
+                            AI will text a call summary to your callback number when calls end.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="settings-group">
                     <h4>Address</h4>
                     <div class="form-group">
                         <label>Street Address</label>
@@ -661,6 +691,172 @@ STRICT_BUDGET: $25</pre>
             </div>
         </div><!-- End Settings Tab -->
 
+        <!-- Incoming Calls Tab -->
+        <div class="tab-content" id="tab-incoming">
+            <!-- Listener Status Card -->
+            <div class="card" style="margin-bottom: 20px;">
+                <h3>Incoming Call Listener</h3>
+                <div style="display: flex; align-items: center; gap: 16px; margin-top: 16px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div id="listener-dot" style="width: 12px; height: 12px; border-radius: 50%; background: #666;"></div>
+                        <span id="listener-status">Not listening</span>
+                    </div>
+                    <button class="btn btn-primary" id="listener-toggle-btn" onclick="toggleListener()">
+                        Start Listening
+                    </button>
+                </div>
+                <div id="incoming-call-alert" style="display: none; margin-top: 16px; padding: 16px; background: #1e3a1e; border-radius: 8px; border: 1px solid #2d5a2d;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">📞</span>
+                        <span><strong>Incoming call from:</strong> <span id="incoming-caller-id">Unknown</span></span>
+                    </div>
+                </div>
+                <div id="incoming-transcript" style="display: none; margin-top: 16px; max-height: 300px; overflow-y: auto; background: #0a0a0a; border-radius: 8px; padding: 16px;"></div>
+            </div>
+
+            <!-- Settings Card -->
+            <div class="card">
+                <h3>Incoming Call Settings</h3>
+                <p style="color: #888; margin-bottom: 24px;">Configure how the AI handles incoming calls.</p>
+
+                <div class="settings-group">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                            <input type="checkbox" id="incoming-enabled" style="width: 20px; height: 20px;" />
+                            <span>Enable incoming call handling</span>
+                        </label>
+                        <p style="color: #888; font-size: 12px; margin-top: 8px;">
+                            When enabled, AI will automatically answer incoming calls.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>AI Persona</h4>
+                    <div class="form-group">
+                        <label>Persona / Instructions</label>
+                        <textarea id="incoming-persona" rows="4" placeholder="You are a personal assistant answering calls for {MY_NAME}. Be helpful and professional." style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 8px; color: #fff; resize: vertical;"></textarea>
+                        <p style="color: #888; font-size: 12px; margin-top: 8px;">
+                            Use {MY_NAME}, {COMPANY}, etc. to insert your settings.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Greeting</h4>
+                    <div class="form-group">
+                        <label>Initial Greeting</label>
+                        <textarea id="incoming-greeting" rows="2" placeholder="Hello, you've reached {MY_NAME}'s AI assistant. How can I help you today?" style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 8px; color: #fff; resize: vertical;"></textarea>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveIncomingSettings()">Save Incoming Settings</button>
+                <span id="incoming-saved" class="saved-indicator">Saved!</span>
+            </div>
+        </div><!-- End Incoming Tab -->
+
+        <!-- API Keys Tab -->
+        <div class="tab-content" id="tab-apikeys">
+            <div class="card">
+                <h3>API Keys</h3>
+                <p style="color: #888; margin-bottom: 24px;">Configure your LLM provider and API keys.</p>
+
+                <div class="settings-group">
+                    <h4>LLM Provider</h4>
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select id="api-provider" style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 8px; color: #fff;">
+                            <option value="claude">Claude (Anthropic)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="ollama">Ollama (Local)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Model (optional - leave blank for default)</label>
+                        <input type="text" id="api-model" placeholder="e.g., claude-3-5-haiku-latest, gpt-4o, llama3:8b" />
+                    </div>
+                </div>
+
+                <div class="settings-group" id="anthropic-key-group">
+                    <h4>Anthropic API Key</h4>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="api-anthropic-key" placeholder="sk-ant-..." style="flex: 1;" />
+                            <button class="btn" onclick="togglePassword('api-anthropic-key')" style="padding: 8px 12px;">Show</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group" id="openai-key-group">
+                    <h4>OpenAI API Key</h4>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="api-openai-key" placeholder="sk-..." style="flex: 1;" />
+                            <button class="btn" onclick="togglePassword('api-openai-key')" style="padding: 8px 12px;">Show</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveApiKeys()">Save API Keys</button>
+                <span id="apikeys-saved" class="saved-indicator">Saved!</span>
+            </div>
+        </div><!-- End API Keys Tab -->
+
+        <!-- Integrations Tab -->
+        <div class="tab-content" id="tab-integrations">
+            <div class="card">
+                <h3>Integrations</h3>
+                <p style="color: #888; margin-bottom: 24px;">Connect calendar and other services.</p>
+
+                <div class="settings-group">
+                    <h4>Calendar Provider</h4>
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select id="calendar-provider" style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 8px; color: #fff;">
+                            <option value="">None</option>
+                            <option value="cal.com">Cal.com</option>
+                            <option value="calendly">Calendly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-group" id="calcom-settings" style="display: none;">
+                    <h4>Cal.com Settings</h4>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="calcom-api-key" placeholder="cal_live_..." style="flex: 1;" />
+                            <button class="btn" onclick="togglePassword('calcom-api-key')" style="padding: 8px 12px;">Show</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Event Type ID</label>
+                        <input type="text" id="calcom-event-type" placeholder="123456" />
+                    </div>
+                </div>
+
+                <div class="settings-group" id="calendly-settings" style="display: none;">
+                    <h4>Calendly Settings</h4>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="password" id="calendly-api-key" placeholder="eyJraWQ..." style="flex: 1;" />
+                            <button class="btn" onclick="togglePassword('calendly-api-key')" style="padding: 8px 12px;">Show</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>User URI</label>
+                        <input type="text" id="calendly-user-uri" placeholder="https://api.calendly.com/users/..." />
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveIntegrations()">Save Integrations</button>
+                <span id="integrations-saved" class="saved-indicator">Saved!</span>
+            </div>
+        </div><!-- End Integrations Tab -->
+
     </div>
 
     <!-- Call Detail Modal -->
@@ -729,6 +925,16 @@ STRICT_BUDGET: $25</pre>
                 addTranscript(data.role, data.text);
             } else if (data.type === 'result') {
                 showResult(data);
+            } else if (data.type === 'incoming_listener_status') {
+                updateListenerStatus(data.listening);
+            } else if (data.type === 'incoming_call') {
+                showIncomingCall(data.caller_id);
+            } else if (data.type === 'incoming_transcript') {
+                addIncomingTranscript(data.role, data.text);
+            } else if (data.type === 'incoming_status') {
+                if (data.status === 'ended') {
+                    hideIncomingCall();
+                }
             }
         }
 
@@ -948,15 +1154,29 @@ STRICT_BUDGET: $25</pre>
             'VEHICLE_COLOR': 'setting-vehicle-color'
         };
 
+        // Checkbox settings (handled differently)
+        const checkboxFields = {
+            'SMS_ENABLED': 'setting-sms-enabled'
+        };
+
         async function loadSettings() {
             try {
                 const response = await fetch('/api/settings');
                 const settings = await response.json();
 
+                // Load text fields
                 for (const [key, fieldId] of Object.entries(settingsFields)) {
                     const field = document.getElementById(fieldId);
                     if (field && settings[key]) {
                         field.value = settings[key];
+                    }
+                }
+
+                // Load checkbox fields
+                for (const [key, fieldId] of Object.entries(checkboxFields)) {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.checked = settings[key] === true || settings[key] === 'true';
                     }
                 }
             } catch (error) {
@@ -967,10 +1187,19 @@ STRICT_BUDGET: $25</pre>
         async function saveSettings() {
             const settings = {};
 
+            // Save text fields
             for (const [key, fieldId] of Object.entries(settingsFields)) {
                 const field = document.getElementById(fieldId);
                 if (field && field.value.trim()) {
                     settings[key] = field.value.trim();
+                }
+            }
+
+            // Save checkbox fields
+            for (const [key, fieldId] of Object.entries(checkboxFields)) {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    settings[key] = field.checked;
                 }
             }
 
@@ -990,10 +1219,256 @@ STRICT_BUDGET: $25</pre>
             }
         }
 
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const btn = field.nextElementSibling;
+            if (field.type === 'password') {
+                field.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                field.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+
+        // Incoming Call Settings
+        async function loadIncomingSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                const incoming = settings.incoming || {};
+
+                document.getElementById('incoming-enabled').checked = incoming.ENABLED === true;
+                document.getElementById('incoming-persona').value = incoming.PERSONA || '';
+                document.getElementById('incoming-greeting').value = incoming.GREETING || '';
+            } catch (error) {
+                console.error('Failed to load incoming settings:', error);
+            }
+        }
+
+        async function saveIncomingSettings() {
+            const incoming = {
+                ENABLED: document.getElementById('incoming-enabled').checked,
+                PERSONA: document.getElementById('incoming-persona').value,
+                GREETING: document.getElementById('incoming-greeting').value
+            };
+
+            try {
+                // Get current settings and merge
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                settings.incoming = incoming;
+
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const saved = document.getElementById('incoming-saved');
+                saved.classList.add('show');
+                setTimeout(() => saved.classList.remove('show'), 2000);
+            } catch (error) {
+                alert('Failed to save incoming settings: ' + error);
+            }
+        }
+
+        // API Keys
+        async function loadApiKeys() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                const apiKeys = settings.api_keys || {};
+
+                document.getElementById('api-provider').value = apiKeys.LLM_PROVIDER || 'ollama';
+                document.getElementById('api-model').value = apiKeys.LLM_MODEL || '';
+                document.getElementById('api-anthropic-key').value = apiKeys.ANTHROPIC_API_KEY || '';
+                document.getElementById('api-openai-key').value = apiKeys.OPENAI_API_KEY || '';
+            } catch (error) {
+                console.error('Failed to load API keys:', error);
+            }
+        }
+
+        async function saveApiKeys() {
+            const apiKeys = {
+                LLM_PROVIDER: document.getElementById('api-provider').value,
+                LLM_MODEL: document.getElementById('api-model').value,
+                ANTHROPIC_API_KEY: document.getElementById('api-anthropic-key').value,
+                OPENAI_API_KEY: document.getElementById('api-openai-key').value
+            };
+
+            try {
+                // Get current settings and merge
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                settings.api_keys = apiKeys;
+
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const saved = document.getElementById('apikeys-saved');
+                saved.classList.add('show');
+                setTimeout(() => saved.classList.remove('show'), 2000);
+            } catch (error) {
+                alert('Failed to save API keys: ' + error);
+            }
+        }
+
+        // Integrations
+        async function loadIntegrations() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                const integrations = settings.integrations || {};
+
+                document.getElementById('calendar-provider').value = integrations.CALENDAR_PROVIDER || '';
+                document.getElementById('calcom-api-key').value = integrations.CAL_COM_API_KEY || '';
+                document.getElementById('calcom-event-type').value = integrations.CAL_COM_EVENT_TYPE_ID || '';
+                document.getElementById('calendly-api-key').value = integrations.CALENDLY_API_KEY || '';
+                document.getElementById('calendly-user-uri').value = integrations.CALENDLY_USER_URI || '';
+
+                // Show/hide provider-specific settings
+                updateCalendarProviderUI();
+            } catch (error) {
+                console.error('Failed to load integrations:', error);
+            }
+        }
+
+        function updateCalendarProviderUI() {
+            const provider = document.getElementById('calendar-provider').value;
+            document.getElementById('calcom-settings').style.display = provider === 'cal.com' ? 'block' : 'none';
+            document.getElementById('calendly-settings').style.display = provider === 'calendly' ? 'block' : 'none';
+        }
+
+        async function saveIntegrations() {
+            const integrations = {
+                CALENDAR_PROVIDER: document.getElementById('calendar-provider').value,
+                CAL_COM_API_KEY: document.getElementById('calcom-api-key').value,
+                CAL_COM_EVENT_TYPE_ID: document.getElementById('calcom-event-type').value,
+                CALENDLY_API_KEY: document.getElementById('calendly-api-key').value,
+                CALENDLY_USER_URI: document.getElementById('calendly-user-uri').value
+            };
+
+            try {
+                // Get current settings and merge
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                settings.integrations = integrations;
+
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                const saved = document.getElementById('integrations-saved');
+                saved.classList.add('show');
+                setTimeout(() => saved.classList.remove('show'), 2000);
+            } catch (error) {
+                alert('Failed to save integrations: ' + error);
+            }
+        }
+
+        // Calendar provider change handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarProvider = document.getElementById('calendar-provider');
+            if (calendarProvider) {
+                calendarProvider.addEventListener('change', updateCalendarProviderUI);
+            }
+        });
+
+        // Incoming call listener functions
+        let isListening = false;
+
+        function updateListenerStatus(listening) {
+            isListening = listening;
+            const dot = document.getElementById('listener-dot');
+            const status = document.getElementById('listener-status');
+            const btn = document.getElementById('listener-toggle-btn');
+
+            if (listening) {
+                dot.style.background = '#28a745';
+                dot.style.animation = 'pulse 2s infinite';
+                status.textContent = 'Listening for calls...';
+                btn.textContent = 'Stop Listening';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-danger');
+            } else {
+                dot.style.background = '#666';
+                dot.style.animation = 'none';
+                status.textContent = 'Not listening';
+                btn.textContent = 'Start Listening';
+                btn.classList.remove('btn-danger');
+                btn.classList.add('btn-primary');
+            }
+        }
+
+        async function toggleListener() {
+            try {
+                if (isListening) {
+                    await fetch('/api/incoming/stop', { method: 'POST' });
+                } else {
+                    const response = await fetch('/api/incoming/start', { method: 'POST' });
+                    if (!response.ok) {
+                        const data = await response.json();
+                        alert('Failed to start listener: ' + (data.detail || 'Unknown error'));
+                    }
+                }
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        function showIncomingCall(callerId) {
+            const alert = document.getElementById('incoming-call-alert');
+            const callerIdSpan = document.getElementById('incoming-caller-id');
+            const transcript = document.getElementById('incoming-transcript');
+
+            callerIdSpan.textContent = callerId;
+            alert.style.display = 'block';
+            transcript.style.display = 'block';
+            transcript.innerHTML = '';
+        }
+
+        function hideIncomingCall() {
+            const alert = document.getElementById('incoming-call-alert');
+            alert.style.display = 'none';
+        }
+
+        function addIncomingTranscript(role, text) {
+            const container = document.getElementById('incoming-transcript');
+            const entry = document.createElement('div');
+            entry.className = 'transcript-entry ' + role;
+            entry.innerHTML = `
+                <div class="transcript-role">${role === 'user' ? '👤 Caller' : '🤖 AI'}</div>
+                <div>${text}</div>
+            `;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function loadListenerStatus() {
+            try {
+                const response = await fetch('/api/incoming/status');
+                const data = await response.json();
+                updateListenerStatus(data.listening);
+            } catch (error) {
+                console.error('Failed to load listener status:', error);
+            }
+        }
+
         // Initialize
         connectWebSocket();
         loadHistory();
         loadSettings();
+        loadIncomingSettings();
+        loadApiKeys();
+        loadIntegrations();
+        loadListenerStatus();
     </script>
 </body>
 </html>
@@ -1169,6 +1644,108 @@ async def update_settings(settings: dict):
     """Update user settings"""
     save_settings(settings)
     return {"status": "saved"}
+
+
+# Incoming call listener endpoints
+@app.get("/api/incoming/status")
+async def get_incoming_status():
+    """Get incoming call listener status"""
+    global incoming_handler, incoming_listener_task
+
+    is_listening = (incoming_listener_task is not None and
+                    not incoming_listener_task.done())
+
+    return {
+        "listening": is_listening,
+        "enabled": load_settings().get("incoming", {}).get("ENABLED", False)
+    }
+
+
+@app.post("/api/incoming/start")
+async def start_incoming_listener():
+    """Start the incoming call listener"""
+    global incoming_handler, incoming_listener_task
+
+    # Check if already running
+    if incoming_listener_task and not incoming_listener_task.done():
+        return {"status": "already_running"}
+
+    # Check if enabled in settings
+    settings = load_settings()
+    if not settings.get("incoming", {}).get("ENABLED", False):
+        raise HTTPException(400, "Incoming calls not enabled in settings")
+
+    # Create handler
+    incoming_handler = IncomingCallHandler()
+
+    # Set up callbacks
+    def on_incoming(caller_id):
+        asyncio.create_task(broadcast({
+            "type": "incoming_call",
+            "caller_id": caller_id
+        }))
+
+    def on_state(state):
+        status_map = {
+            "idle": "idle",
+            "listening": "connected",
+            "processing": "speaking",
+            "speaking": "speaking",
+            "completed": "ended",
+            "failed": "failed"
+        }
+        status = status_map.get(state.value, state.value)
+        asyncio.create_task(broadcast({
+            "type": "incoming_status",
+            "status": status
+        }))
+
+    def on_transcript(role, text):
+        asyncio.create_task(broadcast({
+            "type": "incoming_transcript",
+            "role": role,
+            "text": text
+        }))
+
+    incoming_handler.on_incoming_call(on_incoming)
+    incoming_handler.on_state_change(on_state)
+    incoming_handler.on_transcript(on_transcript)
+
+    # Start listener in background
+    incoming_listener_task = asyncio.create_task(incoming_handler.start_listening())
+
+    await broadcast({
+        "type": "incoming_listener_status",
+        "listening": True
+    })
+
+    return {"status": "started"}
+
+
+@app.post("/api/incoming/stop")
+async def stop_incoming_listener():
+    """Stop the incoming call listener"""
+    global incoming_handler, incoming_listener_task
+
+    if incoming_handler:
+        incoming_handler.stop_listening()
+
+    if incoming_listener_task:
+        incoming_listener_task.cancel()
+        try:
+            await incoming_listener_task
+        except asyncio.CancelledError:
+            pass
+        incoming_listener_task = None
+
+    incoming_handler = None
+
+    await broadcast({
+        "type": "incoming_listener_status",
+        "listening": False
+    })
+
+    return {"status": "stopped"}
 
 
 def main():
