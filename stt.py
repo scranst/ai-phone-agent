@@ -38,6 +38,16 @@ class SpeechToText:
         self.sample_rate = 16000  # Whisper expects 16kHz
         logger.info(f"Whisper model loaded: {model_size}")
 
+        # Warm up the model with a tiny silent audio
+        self._warmup()
+
+    def _warmup(self):
+        """Warm up the model to avoid cold start delay on first transcription"""
+        logger.info("Warming up Whisper model...")
+        silent = np.zeros(16000, dtype=np.float32)  # 1 second of silence
+        list(self.model.transcribe(silent, language="en"))
+        logger.info("Whisper warmup complete")
+
     def transcribe(
         self,
         audio: np.ndarray,

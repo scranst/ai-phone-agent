@@ -23,7 +23,7 @@ class VoiceActivityDetector:
         frame_duration_ms: int = 30,
         min_speech_ms: int = 250,
         min_silence_ms: int = 600,
-        max_speech_ms: int = 15000,  # Force end after 15 seconds
+        max_speech_ms: int = 30000,  # Force end after 30 seconds
         energy_threshold: int = 500,  # RMS threshold for speech detection
     ):
         """
@@ -86,6 +86,8 @@ class VoiceActivityDetector:
         self._total_speech_frames = 0
         self._audio_buffer.clear()
         self._frame_buffer = np.array([], dtype=np.int16)
+        if hasattr(self, '_pre_buffer'):
+            self._pre_buffer.clear()
 
     def _resample(self, audio: np.ndarray, from_rate: int, to_rate: int) -> np.ndarray:
         """Resample audio to target sample rate"""
@@ -118,8 +120,15 @@ class VoiceActivityDetector:
             'audio_buffer': None
         }
 
-        # Add original audio to buffer (for later transcription)
-        self._audio_buffer.extend(audio_chunk)
+        # Keep a small pre-buffer for the start of speech
+        if not hasattr(self, '_pre_buffer'):
+            self._pre_buffer = deque(maxlen=self.native_sample_rate)  # 1 second pre-buffer
+
+        if self._is_speaking:
+            self._audio_buffer.extend(audio_chunk)
+        else:
+            # Keep recent audio in case speech starts
+            self._pre_buffer.extend(audio_chunk)
 
         # Resample if needed for VAD
         if self.native_sample_rate != self.vad_sample_rate:
@@ -159,6 +168,10 @@ class VoiceActivityDetector:
                     self._is_speaking = True
                     self._total_speech_frames = 0  # Start counting
                     result['speech_started'] = True
+                    # Add pre-buffer to capture start of speech
+                    if hasattr(self, '_pre_buffer'):
+                        self._audio_buffer.extend(self._pre_buffer)
+                        self._pre_buffer.clear()
                     logger.debug("Speech started")
                 elif self._is_speaking:
                     self._total_speech_frames += 1

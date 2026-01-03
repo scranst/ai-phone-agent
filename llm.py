@@ -19,14 +19,14 @@ class LLMEngine:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-3-haiku-20240307"
+        model: str = "claude-3-5-haiku-latest"
     ):
         """
         Initialize LLM engine.
 
         Args:
             api_key: Anthropic API key (uses config if not provided)
-            model: Model to use (haiku is cheapest/fastest)
+            model: Model to use
         """
         self.api_key = api_key or config.ANTHROPIC_API_KEY
         self.model = model
@@ -48,35 +48,53 @@ class LLMEngine:
         # Check for special context keys (use get to not modify original dict)
         self.transfer_to = context.get("TRANSFER_TO")
         self.transfer_when = context.get("TRANSFER_IF") or context.get("TRANSFER_WHEN")
+        self.strict_budget = context.get("STRICT_BUDGET", "")
 
         # Log transfer config if present
         if self.transfer_to:
             logger.info(f"Transfer configured: TO={self.transfer_to}, IF={self.transfer_when}")
+        if self.strict_budget:
+            logger.info(f"Strict budget: {self.strict_budget}")
 
         context_str = "\n".join(f"- {k}: {v}" for k, v in context.items())
 
         # Build base prompt
-        self.system_prompt = f"""You are a voice chatbot having a conversation. The other person has just sent you a message.
+        self.system_prompt = f"""You are an AI assistant making a phone call on behalf of a client.
 
 YOUR GOAL:
 {objective}
 
-ABOUT YOU:
+YOUR INFORMATION:
 {context_str}
 
-RULES:
-- Reply with SHORT responses (1-2 sentences)
-- Just say words - no asterisks, no actions like *dials* or *waits*
-- You are trying to accomplish YOUR goal - you need something from them
-- Do not make up information you don't have"""
+CRITICAL RULES:
+- In your FIRST response, briefly mention you're an AI assistant calling on behalf of someone
+- Keep responses SHORT (1-2 sentences max)
+- LISTEN CAREFULLY - never ask for information they already provided
+- When they give you an answer, acknowledge it and move on - don't ask again
+- Be conversational and natural, not robotic or overly formal
+- No asterisks or action words like *pauses*
+- If they ask a question, answer it directly
+- When the goal is achieved, wrap up the call naturally"""
 
-        # Add transfer instructions if configured
-        if self.transfer_to and self.transfer_when:
+        # Add callback instructions if configured
+        if self.transfer_when:
             self.system_prompt += f"""
 
-TRANSFER INSTRUCTIONS:
-You can transfer the call to a human IF: {self.transfer_when}
-When you need to transfer, say: "Let me transfer you now. Please hold." then add [TRANSFER] at the end."""
+CALLBACK INSTRUCTIONS:
+If {self.transfer_when}, offer to have someone call them back.
+Say something like: "I'll have them call you right back at this number. Thank you for your time!" then add [CALLBACK] at the end.
+Do NOT say you'll transfer them - just offer a callback."""
+
+        # Add strict budget instructions if configured
+        if self.strict_budget:
+            self.system_prompt += f"""
+
+STRICT BUDGET: {self.strict_budget}
+- You MUST keep the total under {self.strict_budget}
+- Decline any upsells, add-ons, or extras that would push the total over budget
+- If they offer something, ask the price first, then decline if it would exceed the budget
+- Say something like "No thank you, I'm trying to keep it under {self.strict_budget}" """
 
         self.conversation_history = []
         logger.info(f"Objective set: {objective[:100]}...")
@@ -131,16 +149,12 @@ When you need to transfer, say: "Let me transfer you now. Please hold." then add
         Returns:
             Initial greeting text
         """
-        # Create a prompt for the initial greeting
         try:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=100,
                 system=self.system_prompt,
-                messages=[{
-                    "role": "user",
-                    "content": "Hello?"
-                }]
+                messages=[{"role": "user", "content": "Hello?"}]
             )
 
             greeting = response.content[0].text.strip()
@@ -176,12 +190,51 @@ When you need to transfer, say: "Let me transfer you now. Please hold." then add
         return any(phrase in last_lower for phrase in end_phrases)
 
     def should_transfer(self, last_response: str) -> bool:
-        """Check if response contains transfer trigger"""
-        return "[TRANSFER]" in last_response
+        """Check if response contains callback trigger"""
+        return "[CALLBACK]" in last_response or "[TRANSFER]" in last_response
 
     def get_transfer_number(self) -> Optional[str]:
         """Get the number to transfer to"""
         return getattr(self, 'transfer_to', None)
+
+    def summarize_call(self, transcript: list, objective: str) -> str:
+        """
+        Generate a summary of the call.
+
+        Args:
+            transcript: List of conversation turns
+            objective: The original call objective
+
+        Returns:
+            Summary of what happened in the call
+        """
+        if not transcript:
+            return "No conversation recorded."
+
+        # Format transcript for summary
+        conversation = "\n".join(
+            f"{turn['role'].upper()}: {turn['content']}"
+            for turn in transcript
+        )
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=200,
+                system="You summarize phone calls concisely. Focus on: what was discussed, any commitments made, key information obtained, and the outcome. Keep it to 2-3 sentences.",
+                messages=[{
+                    "role": "user",
+                    "content": f"CALL OBJECTIVE: {objective}\n\nTRANSCRIPT:\n{conversation}\n\nSummarize this call:"
+                }]
+            )
+            return response.content[0].text.strip()
+        except Exception as e:
+            logger.error(f"Summary error: {e}")
+            # Fallback to last assistant message
+            for turn in reversed(transcript):
+                if turn["role"] == "assistant":
+                    return turn["content"]
+            return "Call completed."
 
 
 # Test function

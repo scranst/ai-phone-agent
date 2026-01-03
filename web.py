@@ -32,6 +32,26 @@ app = FastAPI(title="AI Phone Agent")
 active_calls: dict = {}
 websocket_connections: list[WebSocket] = []
 
+# Settings file path
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
+
+
+def load_settings() -> dict:
+    """Load settings from file"""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE) as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+
+def save_settings(settings: dict):
+    """Save settings to file"""
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=2)
+
 
 class CallRequestModel(BaseModel):
     phone: str
@@ -311,6 +331,57 @@ async def home():
             padding: 8px 0;
         }
 
+        /* Tab styles */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 0;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #ccc; }
+        .tab-btn.active {
+            color: #4a9eff;
+            border-bottom-color: #4a9eff;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .settings-group {
+            margin-bottom: 24px;
+        }
+        .settings-group h4 {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .settings-grid .form-group { margin-bottom: 0; }
+        .settings-saved {
+            color: #4ade80;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .settings-saved.show { opacity: 1; }
+
         /* Cheat Sheet Styles */
         .cheatsheet {
             margin-top: 16px;
@@ -370,6 +441,15 @@ async def home():
     <div class="container">
         <h1>AI Phone Agent</h1>
 
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('calls')">Make a Call</button>
+            <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+        </div>
+
+        <!-- Calls Tab -->
+        <div class="tab-content active" id="tab-calls">
+
         <!-- Call Form -->
         <div class="card" id="call-form-card">
             <div class="form-group">
@@ -401,39 +481,49 @@ async def home():
                     </button>
                     <div class="cheatsheet-content">
                         <div class="cheatsheet-section">
-                            <h4>🔄 Call Transfer (Conference to your phone)</h4>
-                            <pre>TRANSFER_TO: 7025551234
-TRANSFER_IF: They ask to speak to a human</pre>
-                            <p>AI will say "Please hold" and conference you into the call when condition is met.</p>
+                            <h4>ℹ️ Your Settings are Auto-Included</h4>
+                            <p>Info from the Settings tab (name, address, vehicle, etc.) is automatically available to the AI. You only need to add <strong>per-call context</strong> here.</p>
                         </div>
 
                         <div class="cheatsheet-section">
-                            <h4>📞 Lead Qualification</h4>
-                            <pre>WHO YOU ARE: Sales rep for ABC Company
-TRANSFER_TO: 7025551234
-TRANSFER_IF: Budget over $1000 and timeline under 30 days</pre>
+                            <h4>📞 Callback Request</h4>
+                            <pre>TRANSFER_IF: They ask to speak to a human</pre>
+                            <p>If the caller wants to speak to someone, AI will offer a callback: <em>"I'll have them call you right back!"</em> and end the call. You'll see this in the call log.</p>
                         </div>
 
                         <div class="cheatsheet-section">
-                            <h4>🍕 Order Placement</h4>
-                            <pre>WHO YOU ARE: Customer ordering for Scott
-DELIVERY ADDRESS: 123 Main St
-PAYMENT: Cash on delivery</pre>
+                            <h4>🚗 Example: Get a Quote</h4>
+                            <p><strong>Objective:</strong> Get a quote for window tinting with the darkest legal tint</p>
+                            <pre>TRANSFER_IF: They want to speak to the owner</pre>
+                            <p><em>Vehicle info comes from Settings.</em></p>
                         </div>
 
                         <div class="cheatsheet-section">
-                            <h4>📅 Appointment Reminder</h4>
-                            <pre>WHO YOU ARE: AI assistant for Dr. Smith's office
-APPOINTMENT: Tomorrow at 2:30 PM
-PATIENT NAME: John Doe</pre>
+                            <h4>🍕 Example: Place an Order</h4>
+                            <p><strong>Objective:</strong> Order a large pepperoni pizza for delivery</p>
+                            <pre>SPECIAL_INSTRUCTIONS: Extra crispy
+STRICT_BUDGET: $25</pre>
+                            <p><em>Name, address, payment come from Settings.</em></p>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>💰 Budget Control</h4>
+                            <pre>STRICT_BUDGET: $50</pre>
+                            <p>AI will decline upsells and extras that would push the total over the specified amount.</p>
+                        </div>
+
+                        <div class="cheatsheet-section">
+                            <h4>📅 Example: Make Appointment</h4>
+                            <p><strong>Objective:</strong> Schedule an oil change for tomorrow morning</p>
+                            <pre>PREFERRED_TIME: Between 9am and 11am</pre>
+                            <p><em>Name, callback, vehicle come from Settings.</em></p>
                         </div>
 
                         <div class="cheatsheet-section">
                             <h4>💡 Tips</h4>
-                            <p>• Keys are shown to AI as context</p>
-                            <p>• <code>TRANSFER_TO</code> + <code>TRANSFER_IF</code> enables call transfer</p>
-                            <p>• Keep objectives short and clear</p>
-                            <p>• AI won't make up info it doesn't have</p>
+                            <p>• Settings are merged with per-call context</p>
+                            <p>• AI introduces itself as an AI assistant</p>
+                            <p>• Keep objectives clear and specific</p>
                         </div>
                     </div>
                 </div>
@@ -467,6 +557,110 @@ PATIENT NAME: John Doe</pre>
             <h3 style="margin-bottom: 16px;">Recent Calls</h3>
             <div id="history"></div>
         </div>
+
+        </div><!-- End Calls Tab -->
+
+        <!-- Settings Tab -->
+        <div class="tab-content" id="tab-settings">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h3>My Information</h3>
+                    <span class="settings-saved" id="settings-saved">✓ Saved</span>
+                </div>
+                <p style="color: #888; margin-bottom: 24px;">This information will be available to the AI when making calls on your behalf.</p>
+
+                <div class="settings-group">
+                    <h4>Personal Details</h4>
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="setting-name" placeholder="Scott Stevenson" />
+                        </div>
+                        <div class="form-group">
+                            <label>Callback Number</label>
+                            <input type="tel" id="setting-callback" placeholder="702-555-1234" />
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="setting-email" placeholder="scott@example.com" />
+                        </div>
+                        <div class="form-group">
+                            <label>Company (optional)</label>
+                            <input type="text" id="setting-company" placeholder="Acme Inc" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Address</h4>
+                    <div class="form-group">
+                        <label>Street Address</label>
+                        <input type="text" id="setting-address" placeholder="123 Main Street" />
+                    </div>
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label>City</label>
+                            <input type="text" id="setting-city" placeholder="Las Vegas" />
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" id="setting-state" placeholder="NV" />
+                        </div>
+                        <div class="form-group">
+                            <label>ZIP Code</label>
+                            <input type="text" id="setting-zip" placeholder="89101" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Payment (for orders)</h4>
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label>Card Number</label>
+                            <input type="text" id="setting-card" placeholder="•••• •••• •••• 1234" />
+                        </div>
+                        <div class="form-group">
+                            <label>Expiration</label>
+                            <input type="text" id="setting-exp" placeholder="MM/YY" />
+                        </div>
+                        <div class="form-group">
+                            <label>CVV</label>
+                            <input type="text" id="setting-cvv" placeholder="•••" />
+                        </div>
+                        <div class="form-group">
+                            <label>Billing ZIP</label>
+                            <input type="text" id="setting-billing-zip" placeholder="89101" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Vehicle (for auto services)</h4>
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="text" id="setting-vehicle-year" placeholder="2008" />
+                        </div>
+                        <div class="form-group">
+                            <label>Make</label>
+                            <input type="text" id="setting-vehicle-make" placeholder="Mercury" />
+                        </div>
+                        <div class="form-group">
+                            <label>Model</label>
+                            <input type="text" id="setting-vehicle-model" placeholder="Mariner" />
+                        </div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <input type="text" id="setting-vehicle-color" placeholder="Silver" />
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div><!-- End Settings Tab -->
+
     </div>
 
     <!-- Call Detail Modal -->
@@ -723,9 +917,83 @@ PATIENT NAME: John Doe</pre>
             if (e.key === 'Escape') closeModal();
         });
 
+        // Tab switching
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Settings field mapping
+        const settingsFields = {
+            'MY_NAME': 'setting-name',
+            'CALLBACK_NUMBER': 'setting-callback',
+            'EMAIL': 'setting-email',
+            'COMPANY': 'setting-company',
+            'ADDRESS': 'setting-address',
+            'CITY': 'setting-city',
+            'STATE': 'setting-state',
+            'ZIP': 'setting-zip',
+            'CARD_NUMBER': 'setting-card',
+            'CARD_EXP': 'setting-exp',
+            'CARD_CVV': 'setting-cvv',
+            'BILLING_ZIP': 'setting-billing-zip',
+            'VEHICLE_YEAR': 'setting-vehicle-year',
+            'VEHICLE_MAKE': 'setting-vehicle-make',
+            'VEHICLE_MODEL': 'setting-vehicle-model',
+            'VEHICLE_COLOR': 'setting-vehicle-color'
+        };
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+
+                for (const [key, fieldId] of Object.entries(settingsFields)) {
+                    const field = document.getElementById(fieldId);
+                    if (field && settings[key]) {
+                        field.value = settings[key];
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        }
+
+        async function saveSettings() {
+            const settings = {};
+
+            for (const [key, fieldId] of Object.entries(settingsFields)) {
+                const field = document.getElementById(fieldId);
+                if (field && field.value.trim()) {
+                    settings[key] = field.value.trim();
+                }
+            }
+
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                // Show saved indicator
+                const saved = document.getElementById('settings-saved');
+                saved.classList.add('show');
+                setTimeout(() => saved.classList.remove('show'), 2000);
+            } catch (error) {
+                alert('Failed to save settings: ' + error);
+            }
+        }
+
         // Initialize
         connectWebSocket();
         loadHistory();
+        loadSettings();
     </script>
 </body>
 </html>
@@ -750,6 +1018,10 @@ async def websocket_endpoint(websocket: WebSocket):
 async def start_call(request: CallRequestModel):
     """Start a new AI phone call"""
     call_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Merge saved settings with call context
+    settings = load_settings()
+    merged_context = {**settings, **request.context}  # Call context overrides settings
 
     # Create agent with local STT/TTS
     agent = PhoneAgentLocal()
@@ -797,7 +1069,7 @@ async def start_call(request: CallRequestModel):
             result = await agent.call(CallRequest(
                 phone=request.phone,
                 objective=request.objective,
-                context=request.context
+                context=merged_context
             ))
 
             # Send result
@@ -884,6 +1156,19 @@ async def get_call_details(call_id: str):
             }
     except Exception as e:
         raise HTTPException(500, f"Failed to read call: {str(e)}")
+
+
+@app.get("/api/settings")
+async def get_settings():
+    """Get user settings"""
+    return load_settings()
+
+
+@app.post("/api/settings")
+async def update_settings(settings: dict):
+    """Update user settings"""
+    save_settings(settings)
+    return {"status": "saved"}
 
 
 def main():

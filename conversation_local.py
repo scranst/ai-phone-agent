@@ -98,7 +98,7 @@ class LocalConversationEngine:
             min_speech_ms=200,
             min_silence_ms=500,  # Faster turn-taking
             max_speech_ms=30000,  # 30 second max
-            energy_threshold=4000  # Higher threshold to filter connection noise (real speech ~7000-12000 RMS)
+            energy_threshold=4000  # Higher threshold to filter connection noise
         )
 
         self.stt = SpeechToText(
@@ -204,16 +204,25 @@ class LocalConversationEngine:
         """
         # Skip if audio buffer is too quiet (likely noise, not speech)
         rms = np.sqrt(np.mean(audio_buffer.astype(np.float32) ** 2))
-        if rms < 3000:
+        if rms < 1500:
             logger.info(f"Skipping low-energy audio (RMS={rms:.0f})")
+            self._set_state(ConversationState.LISTENING)
+            return None
+
+        # Skip if audio is too loud (likely phone tones, not speech)
+        if rms > 8000:
+            logger.info(f"Skipping high-energy audio (RMS={rms:.0f}) - likely phone tone")
             self._set_state(ConversationState.LISTENING)
             return None
 
         self._set_state(ConversationState.PROCESSING)
 
         # 1. Transcribe
+        t0 = time.time()
         logger.info(f"Transcribing (RMS={rms:.0f})...")
         user_text = self.stt.transcribe(audio_buffer, self.sample_rate)
+        t1 = time.time()
+        logger.info(f"[TIMING] STT took {t1-t0:.2f}s")
 
         if not user_text.strip():
             logger.warning("Empty transcription")
@@ -229,6 +238,8 @@ class LocalConversationEngine:
         # 2. Generate response
         logger.info("Generating response...")
         response_text = self.llm.generate_response(user_text)
+        t2 = time.time()
+        logger.info(f"[TIMING] LLM took {t2-t1:.2f}s")
 
         if not response_text:
             self._set_state(ConversationState.LISTENING)
@@ -241,9 +252,10 @@ class LocalConversationEngine:
             self._transcript_callback("assistant", response_text)
 
         # 3. Synthesize speech
-        # Strip any *asterisk actions* and [TRANSFER] markers before TTS
+        # Strip any *asterisk actions* and [TRANSFER]/[CALLBACK] markers before TTS
         clean_text = re.sub(r'\*[^*]+\*', '', response_text).strip()
         clean_text = re.sub(r'\[TRANSFER\]', '', clean_text).strip()
+        clean_text = re.sub(r'\[CALLBACK\]', '', clean_text).strip()
         clean_text = ' '.join(clean_text.split())  # Collapse multiple spaces
 
         if not clean_text:
@@ -252,6 +264,8 @@ class LocalConversationEngine:
 
         logger.info("Synthesizing speech...")
         audio_response = self.tts.synthesize(clean_text)
+        t3 = time.time()
+        logger.info(f"[TIMING] TTS took {t3-t2:.2f}s, TOTAL pipeline: {t3-t0:.2f}s")
 
         if not audio_response:
             self._set_state(ConversationState.LISTENING)
@@ -282,13 +296,19 @@ class LocalConversationEngine:
 
     def get_result(self) -> ConversationResult:
         """Get conversation result"""
+        # Generate AI summary of the call
         summary = ""
-        if self.transcript:
-            # Use last assistant message as summary
-            for msg in reversed(self.transcript):
-                if msg["role"] == "assistant":
-                    summary = msg["content"]
-                    break
+        if self.transcript and self.llm and self.config:
+            try:
+                summary = self.llm.summarize_call(self.transcript, self.config.objective)
+                logger.info(f"Call summary: {summary}")
+            except Exception as e:
+                logger.error(f"Failed to generate summary: {e}")
+                # Fallback to last assistant message
+                for msg in reversed(self.transcript):
+                    if msg["role"] == "assistant":
+                        summary = msg["content"]
+                        break
 
         # Consider call successful if:
         # 1. State is COMPLETED (AI said goodbye), OR

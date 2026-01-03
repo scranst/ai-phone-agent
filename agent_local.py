@@ -112,7 +112,7 @@ class PhoneAgentLocal:
             logger.info("Call connected!")
             self._call_active = True
 
-            # Brief delay for connection to stabilize (energy filter handles noise)
+            # Brief delay for connection to stabilize
             await asyncio.sleep(0.1)
 
             # 5. Start conversation
@@ -149,12 +149,12 @@ class PhoneAgentLocal:
             self._call_active = False
             self.conversation.stop()
 
+            # Normal cleanup - hang up and disconnect
             try:
                 self.modem.hangup()
             except:
                 pass
 
-            # Always disconnect modem to release USB interface
             try:
                 self.modem.disconnect()
             except:
@@ -261,17 +261,13 @@ class PhoneAgentLocal:
                         await asyncio.sleep(1)  # Let final audio play
                         self._call_active = False
 
-                    # Check if we need to transfer the call
+                    # Check if callback was requested
                     elif self.conversation.state == ConversationState.TRANSFERRING:
-                        transfer_number = self.conversation._transfer_number
-                        logger.info(f"Initiating call transfer to: {transfer_number}")
-                        await asyncio.sleep(1)  # Let "please hold" audio play
-                        if transfer_number:
-                            success = self.modem.transfer_to(transfer_number)
-                            if success:
-                                logger.info(f"Call transferred to {transfer_number}")
-                            else:
-                                logger.error("Transfer failed")
+                        callback_number = self.conversation._transfer_number
+                        logger.info(f"Callback requested - caller wants to speak with someone")
+                        await asyncio.sleep(2)  # Let the callback message play fully
+                        # Log the callback request (the call ends normally)
+                        logger.info(f"Callback logged - you should call them back")
                         self._call_active = False
 
             except asyncio.TimeoutError:
