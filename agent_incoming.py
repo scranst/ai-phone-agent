@@ -25,6 +25,7 @@ from audio_router_sim7600 import AudioRouterSIM7600
 from conversation_local import LocalConversationEngine, ConversationConfig, ConversationState
 
 import config
+import database
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,14 @@ class IncomingCallHandler:
         self._listening = True
 
         try:
+            # Pre-initialize conversation engine (loads Whisper model etc.)
+            # This avoids delay when answering calls
+            # Run in executor to not block the event loop
+            logger.info("Pre-loading AI models...")
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.conversation.initialize)
+            logger.info("AI models ready")
+
             # Connect modem
             if not self.modem.connect():
                 raise Exception("Failed to connect to SIM7600 modem")
@@ -120,8 +129,11 @@ class IncomingCallHandler:
             logger.info("Modem connected, waiting for incoming calls...")
 
             while self._listening:
-                # Wait for incoming call (5 second timeout to check listening flag)
-                caller_id = self.modem.wait_for_incoming_call(timeout=5)
+                # Wait for incoming call in executor to not block event loop
+                caller_id = await loop.run_in_executor(
+                    None,
+                    lambda: self.modem.wait_for_incoming_call(timeout=5)
+                )
 
                 if caller_id:
                     logger.info(f"Incoming call from: {caller_id}")
@@ -160,12 +172,18 @@ class IncomingCallHandler:
         logger.info(f"Handling incoming call from {caller_id}")
         start_time = time.time()
         recording_path = None
+        lead = None
+
+        # Look up lead by caller ID for context
+        try:
+            lead = database.get_lead_by_phone(caller_id)
+            if lead:
+                logger.info(f"Incoming call from known lead: {lead.get('first_name', '')} {lead.get('last_name', '')} at {lead.get('company', 'Unknown')}")
+        except Exception as e:
+            logger.warning(f"Could not look up lead: {e}")
 
         try:
-            # Initialize conversation engine
-            self.conversation.initialize()
-
-            # Set up callbacks
+            # Set up callbacks (conversation engine already initialized in start_listening)
             self.conversation.on_state_change(self._on_state_change)
             self.conversation.on_transcript(self._on_transcript)
 
@@ -182,21 +200,33 @@ class IncomingCallHandler:
             logger.info("Call answered!")
             self._call_active = True
 
-            # Wait for audio to stabilize
-            await asyncio.sleep(0.5)
+            # Brief wait for audio to stabilize
+            await asyncio.sleep(0.2)
 
             # Start conversation with incoming call objective
             persona = settings.get("persona", "You are a helpful assistant.")
             greeting = settings.get("greeting", "Hello, how can I help you?")
 
+            # Build context with lead info if available
+            context = {
+                "caller_id": caller_id,
+                "my_name": settings.get("my_name", ""),
+                "callback_number": settings.get("callback_number", ""),
+                "direction": "incoming"
+            }
+
+            # Add lead context if we found a lead
+            if lead:
+                context = self._build_lead_context(lead, context)
+
+            # Note: greeting is played separately, so tell LLM not to re-introduce
+            objective = f"""Answer this incoming call professionally. {persona}
+
+IMPORTANT: A greeting has ALREADY been played to the caller. Do NOT introduce yourself again or say hello. Just respond directly to what they say."""
+
             conv_config = ConversationConfig(
-                objective=f"Answer this incoming call professionally. {persona}",
-                context={
-                    "caller_id": caller_id,
-                    "my_name": settings.get("my_name", ""),
-                    "callback_number": settings.get("callback_number", ""),
-                    "direction": "incoming"
-                }
+                objective=objective,
+                context=context
             )
             self.conversation.start(conv_config)
 
@@ -256,6 +286,10 @@ class IncomingCallHandler:
 
             # Save call log
             self._save_call_log(caller_id, call_result, recording_path, settings)
+
+            # Log interaction to database if we have a lead
+            if lead:
+                self._log_interaction_to_db(lead, call_result, recording_path, direction='inbound')
 
             # Send SMS summary if enabled
             time.sleep(2)  # Give modem time to return to command mode
@@ -404,6 +438,91 @@ class IncomingCallHandler:
 
         except Exception as e:
             logger.error(f"Error sending SMS summary: {e}")
+
+    def _build_lead_context(self, lead: dict, existing_context: dict) -> dict:
+        """Build context from lead data, merged with existing context"""
+        lead_context = {}
+
+        # Contact info
+        if lead.get('first_name'):
+            lead_context['CALLER_FIRST_NAME'] = lead['first_name']
+        if lead.get('last_name'):
+            lead_context['CALLER_LAST_NAME'] = lead['last_name']
+        if lead.get('first_name') or lead.get('last_name'):
+            lead_context['CALLER_NAME'] = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        if lead.get('email'):
+            lead_context['CALLER_EMAIL'] = lead['email']
+        if lead.get('phone'):
+            lead_context['CALLER_PHONE'] = lead['phone']
+
+        # Company info
+        if lead.get('company'):
+            lead_context['CALLER_COMPANY'] = lead['company']
+        if lead.get('title'):
+            lead_context['CALLER_TITLE'] = lead['title']
+        if lead.get('industry'):
+            lead_context['CALLER_INDUSTRY'] = lead['industry']
+
+        # Personalization and notes
+        if lead.get('notes'):
+            lead_context['CALLER_NOTES'] = lead['notes']
+        if lead.get('pain_points'):
+            lead_context['CALLER_PAIN_POINTS'] = lead['pain_points']
+
+        # Status info
+        if lead.get('status'):
+            lead_context['CALLER_STATUS'] = lead['status']
+        if lead.get('sentiment_status'):
+            lead_context['CALLER_SENTIMENT'] = lead['sentiment_status']
+
+        # Merge: existing context overrides lead context
+        return {**lead_context, **existing_context}
+
+    def _log_interaction_to_db(self, lead: dict, result, recording_path: Optional[str], direction: str = 'inbound'):
+        """Log call interaction to database and update lead"""
+        try:
+            lead_id = lead['id']
+
+            # Determine outcome based on result
+            outcome = 'completed'
+            if not result.success:
+                outcome = 'failed'
+            elif hasattr(result, 'summary'):
+                summary_lower = result.summary.lower() if result.summary else ''
+                if 'booked' in summary_lower or 'scheduled' in summary_lower or 'meeting' in summary_lower:
+                    outcome = 'booked'
+                elif 'callback' in summary_lower:
+                    outcome = 'callback'
+                elif 'not interested' in summary_lower:
+                    outcome = 'not_interested'
+
+            # Log interaction
+            interaction_data = {
+                'channel': 'call',
+                'direction': direction,
+                'duration_seconds': int(result.duration_seconds) if hasattr(result, 'duration_seconds') else 0,
+                'recording_path': recording_path,
+                'transcript': json.dumps(result.transcript) if hasattr(result, 'transcript') else None,
+                'summary': result.summary if hasattr(result, 'summary') else None,
+                'outcome': outcome
+            }
+
+            database.log_interaction(lead_id, interaction_data)
+            logger.info(f"Logged incoming interaction for lead {lead_id}")
+
+            # Update lead - incoming calls mark as ENGAGED (they reached out to us)
+            lead_updates = {'last_contacted_at': datetime.now().isoformat()}
+
+            if outcome == 'booked':
+                lead_updates['status'] = 'MEETING_BOOKED'
+            elif lead.get('status') in ['NEW', 'CONTACTED']:
+                lead_updates['status'] = 'ENGAGED'  # They called us = engaged
+
+            database.update_lead(lead_id, lead_updates)
+            logger.info(f"Updated lead {lead_id} status")
+
+        except Exception as e:
+            logger.error(f"Error logging interaction to database: {e}")
 
 
 # Main entry point for testing

@@ -46,6 +46,7 @@ class ConversationConfig:
     objective: str
     context: dict
     max_duration: int = 300  # 5 minutes
+    enable_tools: bool = False  # Enable AI tools (web search, etc.)
 
 
 class LocalConversationEngine:
@@ -96,13 +97,13 @@ class LocalConversationEngine:
             aggressiveness=3,  # 0-3, higher = more aggressive filtering
             sample_rate=self.sample_rate,
             min_speech_ms=200,
-            min_silence_ms=500,  # Faster turn-taking
+            min_silence_ms=600,  # Turn-taking delay
             max_speech_ms=30000,  # 30 second max
-            energy_threshold=4000  # Higher threshold to filter connection noise
+            energy_threshold=2000  # Lowered to better detect speech
         )
 
         self.stt = SpeechToText(
-            model_size="small.en",  # Good balance of speed and accuracy
+            model_size="tiny.en",  # Fast for Pi, use small.en for better accuracy
             device="cpu",
             compute_type="int8"
         )
@@ -150,7 +151,7 @@ class LocalConversationEngine:
             self.vad.reset()
 
         # Set LLM objective
-        self.llm.set_objective(config.objective, config.context)
+        self.llm.set_objective(config.objective, config.context, enable_tools=config.enable_tools)
 
         self._set_state(ConversationState.LISTENING)
         logger.info("Conversation started - listening for speech")

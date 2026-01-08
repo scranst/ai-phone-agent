@@ -11,14 +11,29 @@ Supports:
 
 import usb.core
 import usb.util
+import usb.backend.libusb1 as libusb1
 import time
 import logging
 import threading
+import platform
 from enum import Enum
 from typing import Optional, Callable
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# On macOS, we need to explicitly set the libusb path
+_usb_backend = None
+if platform.system() == 'Darwin':
+    # Try common homebrew locations
+    for libpath in ['/opt/homebrew/lib/libusb-1.0.dylib', '/usr/local/lib/libusb-1.0.dylib']:
+        try:
+            _usb_backend = libusb1.get_backend(find_library=lambda x, p=libpath: p)
+            if _usb_backend:
+                logger.debug(f"Using libusb from: {libpath}")
+                break
+        except:
+            pass
 
 
 class CallState(Enum):
@@ -74,29 +89,61 @@ class SIM7600Modem:
         self.current_call: Optional[CallInfo] = None
         self._state_callbacks: list[Callable[[CallState], None]] = []
         self._audio_callback: Optional[Callable[[bytes], None]] = None
+        self._sms_callbacks: list[Callable[[str, str], None]] = []  # (sender, message)
         self._monitor_thread: Optional[threading.Thread] = None
         self._running = False
         self._lock = threading.Lock()
+        self._reconnect_lock = threading.Lock()  # Separate lock for reconnection
+        self._sms_in_progress = False  # Flag to pause monitor during SMS operations
         self._product_id: Optional[int] = None
         self._at_interface: int = self.AT_INTERFACE
         self._at_ep_in: int = self.AT_EP_IN
         self._at_ep_out: int = self.AT_EP_OUT
+        self._last_successful_at: float = 0  # Track last successful AT command
+        self._reconnecting: bool = False  # Flag to prevent concurrent reconnects
 
-    def connect(self) -> bool:
-        """Connect to the SIM7600 modem"""
-        # Try each known Product ID
-        for pid in self.PRODUCT_IDS:
-            self.dev = usb.core.find(idVendor=self.VENDOR_ID, idProduct=pid)
-            if self.dev is not None:
-                self._product_id = pid
-                break
+    def connect(self, retries: int = 3) -> bool:
+        """Connect to the SIM7600 modem with retry logic"""
+        for attempt in range(retries):
+            # Try each known Product ID
+            self.dev = None
+            for pid in self.PRODUCT_IDS:
+                self.dev = usb.core.find(idVendor=self.VENDOR_ID, idProduct=pid, backend=_usb_backend)
+                if self.dev is not None:
+                    self._product_id = pid
+                    break
 
+            if self.dev is None:
+                if attempt < retries - 1:
+                    logger.debug(f"Modem not found, retrying in 1s (attempt {attempt + 1}/{retries})")
+                    time.sleep(1)
+                    continue
+                logger.error("SIM7600 modem not found")
+                logger.info("Make sure the modem is connected and powered")
+                return False
+
+            logger.info(f"Found SIM7600 (PID 0x{self._product_id:04x}): {self.dev.manufacturer} - {self.dev.product}")
+
+            # Try to connect - if it fails, retry after a delay
+            if self._do_connect():
+                return True
+
+            if attempt < retries - 1:
+                logger.warning(f"Connection failed, retrying in 2s (attempt {attempt + 1}/{retries})")
+                # Dispose resources and reset device reference
+                try:
+                    usb.util.dispose_resources(self.dev)
+                except:
+                    pass
+                self.dev = None
+                time.sleep(2)
+
+        return False
+
+    def _do_connect(self) -> bool:
+        """Internal method to actually connect to the modem"""
         if self.dev is None:
-            logger.error("SIM7600 modem not found")
-            logger.info("Make sure the modem is connected and powered")
             return False
-
-        logger.info(f"Found SIM7600 (PID 0x{self._product_id:04x}): {self.dev.manufacturer} - {self.dev.product}")
 
         # Select correct endpoints based on PID
         if self._product_id == 0x9011:
@@ -110,6 +157,13 @@ class SIM7600Modem:
             self._at_ep_out = self.AT_EP_OUT
 
         try:
+            # Try USB reset to clear any stale state
+            try:
+                self.dev.reset()
+                time.sleep(0.5)  # Give device time to re-enumerate
+            except Exception as e:
+                logger.debug(f"USB reset skipped: {e}")
+
             # Detach kernel drivers if any
             for i in range(8):
                 try:
@@ -126,15 +180,40 @@ class SIM7600Modem:
             usb.util.claim_interface(self.dev, self._at_interface)
             logger.info(f"Connected to SIM7600 modem (interface {self._at_interface})")
 
-            # Check if SIM is ready
-            response = self._send_at("AT+CPIN?")
-            if "READY" not in response:
-                logger.error(f"SIM not ready: {response}")
-                return False
+            # Check if SIM is ready (retry a few times as modem may need time)
+            sim_ready = False
+            for attempt in range(3):
+                time.sleep(0.5)  # Give modem time between attempts
+                response = self._send_at("AT+CPIN?", timeout=3000)
+                if "READY" in response:
+                    sim_ready = True
+                    break
+                elif "ERROR" in response:
+                    logger.error(f"SIM error: {response}")
+                    break
+                # If we just got "OK" without READY, the SIM might still be initializing
+                logger.info(f"SIM check attempt {attempt + 1}: {response.strip()}")
+
+            if not sim_ready:
+                # Last resort: try to make a simple AT command to verify modem works
+                test_response = self._send_at("AT")
+                if "OK" in test_response:
+                    logger.warning("SIM status unclear but modem responds - continuing anyway")
+                    sim_ready = True
+                else:
+                    logger.error(f"SIM not ready after retries")
+                    return False
 
             # Get signal strength
             response = self._send_at("AT+CSQ")
             logger.info(f"Signal: {response.strip()}")
+
+            # Enable new SMS indications (sends +CMTI when SMS arrives)
+            # Mode 2,1 = buffer URCs during AT commands, show +CMTI for new SMS
+            self._send_at("AT+CNMI=2,1,0,0,0")
+            # Set text mode for SMS
+            self._send_at("AT+CMGF=1")
+            logger.info("SMS notifications enabled (+CMTI)")
 
             # Start monitoring thread
             self._running = True
@@ -146,6 +225,81 @@ class SIM7600Modem:
         except Exception as e:
             logger.error(f"Failed to connect to modem: {e}")
             return False
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if modem is connected and responsive"""
+        if not self.dev:
+            return False
+        # Check if we've had a successful AT command recently (within 30 seconds)
+        if self._last_successful_at > 0 and (time.time() - self._last_successful_at) < 30:
+            return True
+        # Otherwise do a quick check
+        try:
+            with self._lock:
+                self.dev.write(self._at_ep_out, b"AT\r\n", 1000)
+                time.sleep(0.1)
+                data = self.dev.read(self._at_ep_in, 512, timeout=500)
+                if b"OK" in bytes(data):
+                    self._last_successful_at = time.time()
+                    return True
+        except:
+            pass
+        return False
+
+    def reconnect(self) -> bool:
+        """
+        Attempt to reconnect to the modem after a disconnection.
+        Thread-safe - only one reconnection attempt at a time.
+        """
+        # Use a separate lock to prevent concurrent reconnection attempts
+        if not self._reconnect_lock.acquire(blocking=False):
+            logger.debug("Reconnection already in progress")
+            return False
+
+        try:
+            if self._reconnecting:
+                return False
+
+            self._reconnecting = True
+            logger.warning("Modem disconnected - attempting to reconnect...")
+
+            # Stop the monitor thread temporarily
+            was_running = self._running
+            self._running = False
+            if self._monitor_thread and self._monitor_thread.is_alive():
+                self._monitor_thread.join(timeout=2)
+
+            # Clean up old connection
+            if self.dev:
+                try:
+                    usb.util.release_interface(self.dev, self._at_interface)
+                except:
+                    pass
+                try:
+                    usb.util.dispose_resources(self.dev)
+                except:
+                    pass
+                self.dev = None
+
+            # Wait for USB to settle
+            time.sleep(2)
+
+            # Try to reconnect
+            for attempt in range(5):
+                logger.info(f"Reconnection attempt {attempt + 1}/5...")
+                if self.connect(retries=1):
+                    logger.info("Modem reconnected successfully!")
+                    self._reconnecting = False
+                    return True
+                time.sleep(2)
+
+            logger.error("Failed to reconnect to modem after 5 attempts")
+            self._reconnecting = False
+            return False
+
+        finally:
+            self._reconnect_lock.release()
 
     def disconnect(self):
         """Disconnect from the modem"""
@@ -188,9 +342,12 @@ class SIM7600Modem:
         time.sleep(1.5)
         logger.info("Disconnected from modem")
 
-    def _send_at(self, cmd: str, timeout: int = 2000) -> str:
-        """Send AT command and return response"""
+    def _send_at(self, cmd: str, timeout: int = 2000, auto_reconnect: bool = True) -> str:
+        """Send AT command and return response. Auto-reconnects on USB errors."""
         if not self.dev:
+            if auto_reconnect and not self._reconnecting:
+                if self.reconnect():
+                    return self._send_at(cmd, timeout, auto_reconnect=False)
             return "ERROR: Not connected"
 
         with self._lock:
@@ -209,7 +366,23 @@ class SIM7600Modem:
                     except usb.core.USBTimeoutError:
                         break
 
+                # Track successful communication
+                self._last_successful_at = time.time()
                 return response.decode('utf-8', errors='replace')
+
+            except usb.core.USBError as e:
+                # USB error - device likely disconnected
+                error_msg = str(e)
+                logger.error(f"AT command USB error: {e}")
+
+                # Check for disconnection errors
+                if "No such device" in error_msg or "errno 19" in error_msg.lower():
+                    self.dev = None  # Mark as disconnected
+                    if auto_reconnect and not self._reconnecting:
+                        # Try to reconnect in background (don't block)
+                        threading.Thread(target=self.reconnect, daemon=True).start()
+
+                return f"ERROR: {e}"
 
             except Exception as e:
                 logger.error(f"AT command error: {e}")
@@ -223,6 +396,74 @@ class SIM7600Modem:
         """Register callback for incoming audio data"""
         self._audio_callback = callback
 
+    def on_sms(self, callback: Callable[[str, str], None]):
+        """Register callback for incoming SMS (sender, message)"""
+        self._sms_callbacks.append(callback)
+
+    def _decode_ucs2_hex(self, hex_string: str) -> str:
+        """
+        Decode UCS2 hex-encoded SMS message.
+        When SMS contains special characters (smart quotes, emojis, etc.),
+        the modem returns the message as UCS2 hex-encoded.
+        Example: "00430061006C006C" -> "Call"
+        """
+        try:
+            # Check if this looks like UCS2 hex (all hex chars, length multiple of 4)
+            if not hex_string or len(hex_string) % 4 != 0:
+                return hex_string
+            if not all(c in '0123456789ABCDEFabcdef' for c in hex_string):
+                return hex_string
+
+            # Decode UCS2 (UTF-16 big-endian)
+            result = []
+            for i in range(0, len(hex_string), 4):
+                code_point = int(hex_string[i:i+4], 16)
+                result.append(chr(code_point))
+            return ''.join(result)
+        except Exception as e:
+            logger.debug(f"UCS2 decode failed: {e}")
+            return hex_string
+
+    def _notify_sms(self, sender: str, message: str):
+        """Notify all SMS callbacks"""
+        # Try to decode UCS2 if message looks hex-encoded
+        decoded_message = self._decode_ucs2_hex(message)
+        for cb in self._sms_callbacks:
+            try:
+                cb(sender, decoded_message)
+            except Exception as e:
+                logger.error(f"SMS callback error: {e}")
+
+    def _read_sms_by_index(self, index: str):
+        """Read a specific SMS by index, notify callbacks, then delete it"""
+        try:
+            # Read the specific message
+            response = self._send_at(f"AT+CMGR={index}", timeout=3000)
+
+            if "+CMGR:" in response:
+                lines = response.split('\n')
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('+CMGR:'):
+                        try:
+                            # Parse sender from +CMGR line
+                            parts = line.split(',')
+                            sender = parts[1].strip('" ')
+
+                            # Message is on next line
+                            if i + 1 < len(lines):
+                                message = lines[i + 1].strip()
+                                if message and message != 'OK':
+                                    logger.info(f"SMS from {sender}: {message[:50]}...")
+                                    self._notify_sms(sender, message)
+
+                            # Delete the message
+                            self._send_at(f"AT+CMGD={index}", timeout=2000)
+                            break
+                        except Exception as e:
+                            logger.error(f"Failed to parse SMS: {e}")
+        except Exception as e:
+            logger.error(f"Failed to read SMS at index {index}: {e}")
+
     def _notify_state(self, state: CallState):
         """Notify all callbacks of state change"""
         if self.current_call:
@@ -232,6 +473,21 @@ class SIM7600Modem:
                 cb(state)
             except Exception as e:
                 logger.error(f"State callback error: {e}")
+
+    def get_signal_strength(self) -> int:
+        """Get signal strength (0-31, or 99 for unknown)"""
+        response = self._send_at("AT+CSQ")
+        # Response format: AT+CSQ\r\r\n+CSQ: 27,99\r\n\r\nOK\r\n
+        try:
+            if "+CSQ:" in response:
+                # Extract the part after +CSQ:
+                csq_part = response.split("+CSQ:")[1].strip()
+                # Get first number before comma
+                signal = int(csq_part.split(",")[0].strip())
+                return signal
+        except Exception as e:
+            logger.debug(f"Failed to parse signal: {e}")
+        return 0
 
     def dial(self, phone_number: str) -> bool:
         """Initiate a voice call"""
@@ -327,6 +583,20 @@ class SIM7600Modem:
                                 number = response.split('"')[1]
                             except:
                                 pass
+                        else:
+                            # +CLIP: may come in a separate packet - wait for it
+                            for _ in range(5):  # Try up to 5 times (2.5 seconds)
+                                try:
+                                    data2 = self.dev.read(self._at_ep_in, 512, timeout=500)
+                                    response2 = bytes(data2).decode('utf-8', errors='replace')
+                                    if "+CLIP:" in response2:
+                                        try:
+                                            number = response2.split('"')[1]
+                                        except:
+                                            pass
+                                        break
+                                except:
+                                    break
 
                         self.current_call = CallInfo(
                             phone_number=number,
@@ -616,6 +886,11 @@ class SIM7600Modem:
     def _monitor_loop(self):
         """Background thread to monitor call state"""
         while self._running:
+            # Pause monitoring if SMS operation is in progress
+            if self._sms_in_progress:
+                time.sleep(0.1)
+                continue
+
             try:
                 # Check call status
                 response = self._send_at("AT+CLCC")
@@ -670,6 +945,18 @@ class SIM7600Modem:
                         )
                         self._notify_state(CallState.INCOMING)
 
+                # Check for new SMS notification (+CMTI)
+                if "+CMTI:" in response:
+                    try:
+                        # Format: +CMTI: "SM",<index>
+                        cmti_part = response.split("+CMTI:")[1].split("\n")[0]
+                        index = cmti_part.split(",")[1].strip()
+                        logger.info(f"New SMS notification at index {index}")
+                        # Read the SMS
+                        self._read_sms_by_index(index)
+                    except Exception as e:
+                        logger.error(f"Failed to parse CMTI: {e}")
+
             except Exception as e:
                 logger.debug(f"Monitor error: {e}")
 
@@ -714,6 +1001,10 @@ class SIM7600Modem:
         clean_number = "".join(c for c in phone_number if c.isdigit() or c == "+")
 
         logger.info(f"Sending SMS to {clean_number}: {message[:50]}...")
+
+        # Signal monitor loop to pause (prevents lock contention)
+        self._sms_in_progress = True
+        time.sleep(0.6)  # Wait for monitor loop to finish current iteration
 
         try:
             with self._lock:
@@ -798,6 +1089,130 @@ class SIM7600Modem:
         except Exception as e:
             logger.error(f"SMS error: {e}")
             return False
+        finally:
+            # Always resume monitor loop
+            self._sms_in_progress = False
+
+    def read_sms(self, delete_after_read: bool = True) -> list:
+        """
+        Read all unread SMS messages.
+
+        Args:
+            delete_after_read: Whether to delete messages after reading
+
+        Returns:
+            List of dicts with 'sender' and 'message' keys
+        """
+        if not self.dev:
+            logger.error("Cannot read SMS: Not connected to modem")
+            return []
+
+        messages = []
+
+        try:
+            with self._lock:
+                # Set SMS text mode
+                self._send_at("AT+CMGF=1", timeout=2000)
+                time.sleep(0.2)
+
+                # List all messages (both read and unread)
+                response = self._send_at("AT+CMGL=\"ALL\"", timeout=5000)
+
+                # Parse messages
+                # Format: +CMGL: <index>,"<status>","<sender>",,"<timestamp>"\r\n<message>\r\n
+                lines = response.split('\n')
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
+                    if line.startswith('+CMGL:'):
+                        try:
+                            # Parse header
+                            parts = line.split(',')
+                            index = parts[0].split(':')[1].strip()
+                            sender = parts[2].strip('"')
+
+                            # Next line is the message
+                            if i + 1 < len(lines):
+                                message_text = lines[i + 1].strip()
+                                if message_text and not message_text.startswith('+CMGL:') and message_text != 'OK':
+                                    messages.append({
+                                        'index': index,
+                                        'sender': sender,
+                                        'message': message_text
+                                    })
+                                    logger.info(f"Read SMS from {sender}: {message_text[:50]}...")
+                        except Exception as e:
+                            logger.debug(f"Error parsing SMS: {e}")
+                    i += 1
+
+                # Delete read messages if requested
+                if delete_after_read and messages:
+                    for msg in messages:
+                        try:
+                            self._send_at(f"AT+CMGD={msg['index']}", timeout=2000)
+                        except:
+                            pass
+
+        except Exception as e:
+            logger.error(f"Error reading SMS: {e}")
+
+        return messages
+
+    def check_new_sms(self) -> list:
+        """
+        Check for new (unread) SMS messages only.
+
+        Returns:
+            List of dicts with 'sender' and 'message' keys
+        """
+        if not self.dev:
+            return []
+
+        messages = []
+
+        try:
+            with self._lock:
+                # Set SMS text mode
+                self._send_at("AT+CMGF=1", timeout=2000)
+                time.sleep(0.2)
+
+                # List only unread messages
+                response = self._send_at("AT+CMGL=\"REC UNREAD\"", timeout=5000)
+
+                # Parse messages (same format as read_sms)
+                lines = response.split('\n')
+                i = 0
+                while i < len(lines):
+                    line = lines[i].strip()
+                    if line.startswith('+CMGL:'):
+                        try:
+                            parts = line.split(',')
+                            index = parts[0].split(':')[1].strip()
+                            sender = parts[2].strip('"')
+
+                            if i + 1 < len(lines):
+                                message_text = lines[i + 1].strip()
+                                if message_text and not message_text.startswith('+CMGL:') and message_text != 'OK':
+                                    messages.append({
+                                        'index': index,
+                                        'sender': sender,
+                                        'message': message_text
+                                    })
+                        except:
+                            pass
+                    i += 1
+
+                # Delete after reading
+                for msg in messages:
+                    try:
+                        self._send_at(f"AT+CMGD={msg['index']}", timeout=2000)
+                    except:
+                        pass
+
+        except Exception as e:
+            logger.debug(f"Error checking SMS: {e}")
+
+        return messages
 
 
 # Test function

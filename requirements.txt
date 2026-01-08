@@ -1,9 +1,34 @@
+# System dependencies (install via apt on Debian/Ubuntu/Pi):
+#   sudo apt install portaudio19-dev libusb-1.0-0-dev
+#
+# AI/LLM
+anthropic>=0.18.0
 openai>=1.0.0
+
+# Web server
 fastapi>=0.104.0
 uvicorn>=0.24.0
 websockets>=12.0
-sounddevice>=0.4.6
-numpy>=1.24.0
-python-dotenv>=1.0.0
 jinja2>=3.1.0
 aiofiles>=23.0.0
+python-multipart>=0.0.6
+
+# Audio/Speech
+sounddevice>=0.4.6
+numpy>=1.24.0
+faster-whisper>=0.10.0
+webrtcvad>=2.0.10
+piper-tts>=1.2.0
+
+# Hardware
+pyusb>=1.2.1
+libusb>=1.0.26b5
+
+# Email
+aiosmtplib>=3.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+httpx>=0.25.0
+pydantic>=2.0.0

@@ -24,8 +24,8 @@ OPENAI_API_KEY = _api_keys.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", 
 # Anthropic (for Claude Haiku) - settings.json takes priority, then .env
 ANTHROPIC_API_KEY = _api_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")
 
-# LLM Provider: "claude" or "ollama" - settings.json takes priority
-LLM_PROVIDER = _api_keys.get("LLM_PROVIDER") or os.getenv("LLM_PROVIDER", "ollama")
+# LLM Provider: "claude" or "openai" - settings.json takes priority
+LLM_PROVIDER = _api_keys.get("LLM_PROVIDER") or os.getenv("LLM_PROVIDER", "claude")
 LLM_MODEL = _api_keys.get("LLM_MODEL") or os.getenv("LLM_MODEL", "")  # Leave empty for default per provider
 
 # =============================================================================

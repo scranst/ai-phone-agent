@@ -102,22 +102,47 @@ class CalComIntegration(CalendarIntegration):
             "Content-Type": "application/json"
         }
 
+    def cancel_booking(self, booking_id: str) -> bool:
+        """Cancel a booking by ID"""
+        try:
+            url = f"{self.BASE_URL}/bookings/{booking_id}/cancel"
+
+            response = requests.delete(
+                url,
+                headers=self.headers,
+                params={"apiKey": self.api_key},
+                timeout=30
+            )
+
+            if response.status_code in [200, 204]:
+                logger.info(f"Booking {booking_id} canceled successfully")
+                return True
+            else:
+                logger.error(f"Failed to cancel booking {booking_id}: {response.status_code} - {response.text}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error canceling booking {booking_id}: {e}")
+            return False
+
     def check_availability(self, target_date: date) -> list[TimeSlot]:
         """Check available slots for a date on Cal.com"""
         try:
             # Cal.com slots endpoint
             url = f"{self.BASE_URL}/slots"
 
-            # Get slots for the whole day
+            # Get slots for the whole day in PST timezone
+            # Cal.com expects ISO format with timezone offset, not Z (UTC)
             start_time = datetime.combine(target_date, datetime.min.time())
             end_time = start_time + timedelta(days=1)
 
+            # Format as PST (-08:00) since that's our working timezone
             params = {
                 "apiKey": self.api_key,
                 "eventTypeId": self.event_type_id,
-                "startTime": start_time.isoformat() + "Z",
-                "endTime": end_time.isoformat() + "Z",
-                "timeZone": "America/Los_Angeles"  # TODO: Make configurable
+                "startTime": start_time.strftime("%Y-%m-%dT%H:%M:%S") + "-08:00",
+                "endTime": end_time.strftime("%Y-%m-%dT%H:%M:%S") + "-08:00",
+                "timeZone": "America/Los_Angeles"
             }
 
             response = requests.get(

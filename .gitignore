@@ -20,3 +20,7 @@ calls/*.json
 
 # Settings with API keys
 settings.json
+
+# Runtime files
+nohup.out
+*.db

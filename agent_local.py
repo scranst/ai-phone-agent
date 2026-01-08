@@ -23,6 +23,7 @@ from audio_router_sim7600 import AudioRouterSIM7600
 from conversation_local import LocalConversationEngine, ConversationConfig, ConversationState
 
 import config
+import database
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class CallRequest:
     phone: str
     objective: str
     context: dict = field(default_factory=dict)
+    enable_tools: bool = False  # Enable AI tools (web search, etc.) for this call
 
 
 @dataclass
@@ -45,10 +47,19 @@ class CallResult:
 class PhoneAgentLocal:
     """Phone agent using local STT/TTS pipeline"""
 
-    def __init__(self):
-        self.modem = SIM7600Modem()
+    def __init__(self, pre_initialize: bool = True, conversation_engine: Optional[LocalConversationEngine] = None, modem: Optional[SIM7600Modem] = None):
+        # Use provided modem or create new one
+        self.modem = modem if modem else SIM7600Modem()
+        self._owns_modem = modem is None  # Track if we created it
         self.audio = AudioRouterSIM7600()
-        self.conversation = LocalConversationEngine()
+
+        # Use provided conversation engine or create new one
+        if conversation_engine is not None:
+            self.conversation = conversation_engine
+            self._owns_conversation = False  # Don't re-initialize
+        else:
+            self.conversation = LocalConversationEngine()
+            self._owns_conversation = True
 
         self._call_active = False
         self._audio_output_queue = asyncio.Queue()
@@ -56,6 +67,34 @@ class PhoneAgentLocal:
         # External callbacks (for web UI etc)
         self._external_state_callback = None
         self._external_transcript_callback = None
+
+        # Pre-initialize to avoid delay when calling (only if we created the engine)
+        if pre_initialize and self._owns_conversation:
+            self.conversation.initialize()
+
+    async def _generate_greeting_async(self) -> Optional[bytes]:
+        """Generate greeting text and audio in background (runs during ringing)"""
+        try:
+            # Run the blocking LLM and TTS calls in executor to not block
+            loop = asyncio.get_event_loop()
+
+            # Generate greeting text (LLM call - this is the slow part)
+            greeting_text = await loop.run_in_executor(
+                None, self.conversation.get_initial_greeting
+            )
+
+            if not greeting_text:
+                return None
+
+            # Synthesize to audio (TTS call - usually fast)
+            greeting_audio = await loop.run_in_executor(
+                None, self.conversation.synthesize_greeting, greeting_text
+            )
+
+            return greeting_audio
+        except Exception as e:
+            logger.error(f"Error generating greeting: {e}")
+            return None
 
     def on_state_change(self, callback):
         """Register external callback for state changes"""
@@ -80,16 +119,25 @@ class PhoneAgentLocal:
 
         start_time = time.time()
         recording_path = None
+        lead = None
+
+        # Look up lead by phone number for context
+        try:
+            lead = database.get_lead_by_phone(request.phone)
+            if lead:
+                logger.info(f"Found lead: {lead.get('first_name', '')} {lead.get('last_name', '')} at {lead.get('company', 'Unknown')}")
+                # Add lead context
+                request.context = self._build_lead_context(lead, request.context)
+        except Exception as e:
+            logger.warning(f"Could not look up lead: {e}")
 
         try:
-            # 1. Connect modem
-            if not self.modem.connect():
-                raise Exception("Failed to connect to SIM7600 modem")
+            # 1. Connect modem (skip if already connected - e.g., shared modem)
+            if not self.modem.dev:
+                if not self.modem.connect():
+                    raise Exception("Failed to connect to SIM7600 modem")
 
-            # 2. Initialize conversation engine
-            self.conversation.initialize()
-
-            # Set up callbacks
+            # 2. Set up callbacks (conversation engine already initialized in __init__)
             self.conversation.on_state_change(self._on_state_change)
             self.conversation.on_transcript(self._on_transcript)
 
@@ -97,35 +145,40 @@ class PhoneAgentLocal:
             if not self.audio.start():
                 raise Exception("Failed to start audio routing")
 
-            self.audio.start_recording()
+            # self.audio.start_recording()  # TEMPORARILY DISABLED - not saving WAV files
 
             # 4. Dial
             if not self.modem.dial(request.phone):
                 raise Exception("Failed to dial")
 
+            # 5. WHILE RINGING: Prepare greeting in parallel to save time
+            # Start conversation engine and generate greeting while phone rings
+            conv_config = ConversationConfig(
+                objective=request.objective,
+                context=request.context,
+                enable_tools=request.enable_tools
+            )
+            self.conversation.start(conv_config)
+
+            # Generate greeting in background while waiting for answer
+            logger.info("Generating greeting while ringing...")
+            greeting_task = asyncio.create_task(self._generate_greeting_async())
+
             # Wait for call to connect
             call_state = await self._wait_for_connect(timeout=60)
 
             if call_state != CallState.CONNECTED:
+                greeting_task.cancel()
                 raise Exception("Call did not connect")
 
             logger.info("Call connected!")
             self._call_active = True
 
             # Wait for audio to stabilize after connection
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.3)
 
-            # 5. Start conversation (sets LLM objective)
-            conv_config = ConversationConfig(
-                objective=request.objective,
-                context=request.context
-            )
-            self.conversation.start(conv_config)
-
-            # 6. AI speaks first - generate and play greeting
-            logger.info("Generating initial greeting...")
-            greeting_text = self.conversation.get_initial_greeting()
-            greeting_audio = self.conversation.synthesize_greeting(greeting_text)
+            # Get the pre-generated greeting (should be ready by now)
+            greeting_audio = await greeting_task
 
             if greeting_audio:
                 logger.info(f"Playing greeting ({len(greeting_audio)} bytes)")
@@ -171,8 +224,8 @@ class PhoneAgentLocal:
             except:
                 pass
 
-            # Save recording
-            recording_path = self.audio.stop_recording()
+            # Save recording (TEMPORARILY DISABLED)
+            recording_path = None  # self.audio.stop_recording()
             self.audio.stop()
 
             # Get call result for logging and SMS
@@ -181,16 +234,22 @@ class PhoneAgentLocal:
             # Save call log
             self._save_call_log(request, call_result, recording_path)
 
+            # Log interaction to database if we have a lead
+            if lead:
+                self._log_interaction_to_db(lead, call_result, recording_path)
+
             # Send SMS summary if enabled (wait for modem to settle after call)
             import time as time_module
             time_module.sleep(2)  # Give modem time to return to command mode
             self._send_sms_summary(request.phone, call_result)
 
-            # Disconnect modem (after SMS is sent)
-            try:
-                self.modem.disconnect()
-            except:
-                pass
+            # Disconnect modem (after SMS is sent) - only if we own it
+            # When using a shared modem (passed in constructor), don't disconnect
+            if self._owns_modem:
+                try:
+                    self.modem.disconnect()
+                except:
+                    pass
 
     async def _wait_for_connect(self, timeout: float = 60) -> CallState:
         """Wait for call to connect"""
@@ -398,6 +457,105 @@ class PhoneAgentLocal:
 
         except Exception as e:
             logger.error(f"Error sending SMS summary: {e}")
+
+    def _build_lead_context(self, lead: dict, existing_context: dict) -> dict:
+        """Build context from lead data, merged with existing context"""
+        lead_context = {}
+
+        # Contact info
+        if lead.get('first_name'):
+            lead_context['LEAD_FIRST_NAME'] = lead['first_name']
+        if lead.get('last_name'):
+            lead_context['LEAD_LAST_NAME'] = lead['last_name']
+        if lead.get('first_name') or lead.get('last_name'):
+            lead_context['LEAD_NAME'] = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+        if lead.get('email'):
+            lead_context['LEAD_EMAIL'] = lead['email']
+        if lead.get('phone'):
+            lead_context['LEAD_PHONE'] = lead['phone']
+
+        # Company info
+        if lead.get('company'):
+            lead_context['LEAD_COMPANY'] = lead['company']
+        if lead.get('title'):
+            lead_context['LEAD_TITLE'] = lead['title']
+        if lead.get('industry'):
+            lead_context['LEAD_INDUSTRY'] = lead['industry']
+
+        # Personalization
+        if lead.get('icebreaker'):
+            lead_context['ICEBREAKER'] = lead['icebreaker']
+        if lead.get('trigger_event'):
+            lead_context['TRIGGER_EVENT'] = lead['trigger_event']
+        if lead.get('pain_points'):
+            lead_context['PAIN_POINTS'] = lead['pain_points']
+
+        # Notes
+        if lead.get('notes'):
+            lead_context['LEAD_NOTES'] = lead['notes']
+
+        # Status
+        if lead.get('status'):
+            lead_context['LEAD_STATUS'] = lead['status']
+        if lead.get('sentiment_status'):
+            lead_context['LEAD_SENTIMENT'] = lead['sentiment_status']
+
+        # Merge: existing context overrides lead context
+        return {**lead_context, **existing_context}
+
+    def _log_interaction_to_db(self, lead: dict, result, recording_path: Optional[str]):
+        """Log call interaction to database and update lead"""
+        try:
+            lead_id = lead['id']
+
+            # Determine outcome based on result
+            outcome = 'completed'
+            if not result.success:
+                outcome = 'failed'
+            elif hasattr(result, 'summary'):
+                summary_lower = result.summary.lower() if result.summary else ''
+                if 'booked' in summary_lower or 'scheduled' in summary_lower or 'meeting' in summary_lower:
+                    outcome = 'booked'
+                elif 'callback' in summary_lower:
+                    outcome = 'callback'
+                elif 'not interested' in summary_lower or 'no interest' in summary_lower:
+                    outcome = 'not_interested'
+                elif 'voicemail' in summary_lower:
+                    outcome = 'voicemail'
+                elif 'no answer' in summary_lower:
+                    outcome = 'no_answer'
+
+            # Log interaction
+            interaction_data = {
+                'channel': 'call',
+                'direction': 'outbound',
+                'duration_seconds': int(result.duration_seconds) if hasattr(result, 'duration_seconds') else 0,
+                'recording_path': recording_path,
+                'transcript': json.dumps(result.transcript) if hasattr(result, 'transcript') else None,
+                'summary': result.summary if hasattr(result, 'summary') else None,
+                'outcome': outcome
+            }
+
+            database.log_interaction(lead_id, interaction_data)
+            logger.info(f"Logged interaction for lead {lead_id}")
+
+            # Update lead status based on outcome
+            lead_updates = {'last_contacted_at': datetime.now().isoformat()}
+
+            if outcome == 'booked':
+                lead_updates['status'] = 'MEETING_BOOKED'
+            elif outcome == 'not_interested':
+                lead_updates['status'] = 'LOST'
+            elif outcome in ['completed', 'callback']:
+                # Only upgrade from NEW to CONTACTED
+                if lead.get('status') == 'NEW':
+                    lead_updates['status'] = 'CONTACTED'
+
+            database.update_lead(lead_id, lead_updates)
+            logger.info(f"Updated lead {lead_id} status")
+
+        except Exception as e:
+            logger.error(f"Error logging interaction to database: {e}")
 
 
 # Main entry point
