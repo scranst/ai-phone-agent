@@ -5663,6 +5663,8 @@ async def delete_lead(lead_id: int):
         database.delete_lead(lead_id)
         return {"status": "deleted"}
     except Exception as e:
+        import traceback
+        logger.error(f"Failed to delete lead {lead_id}: {e}\n{traceback.format_exc()}")
         raise HTTPException(500, f"Failed to delete lead: {str(e)}")
 
 
@@ -5677,6 +5679,8 @@ async def bulk_delete_leads(data: dict):
         deleted_count = database.delete_leads_bulk(lead_ids)
         return {"status": "deleted", "deleted_count": deleted_count}
     except Exception as e:
+        import traceback
+        logger.error(f"Failed to bulk delete leads {lead_ids}: {e}\n{traceback.format_exc()}")
         raise HTTPException(500, f"Failed to delete leads: {str(e)}")
 
 
