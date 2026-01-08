@@ -14,7 +14,7 @@ from datetime import datetime
 import database
 import api_keys
 from agents import get_agent_manager, Agent, MODEL_IDS
-from ai_tools import ASSISTANT_TOOLS, search_contacts, search_web, get_movie_showtimes
+from ai_tools import ASSISTANT_TOOLS, search_contacts, search_web, get_movie_showtimes, execute_tool as ai_execute_tool
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +277,14 @@ Keep responses SHORT - this is SMS."""
                 return {"success": False, "error": "SMS sending not configured"}
 
         else:
-            return {"error": f"Unknown tool: {tool_name}"}
+            # Delegate to centralized tool executor for all other tools
+            # (create_lead, delete_lead, create_lead_list, add_to_lead_list, etc.)
+            try:
+                result_json = ai_execute_tool(tool_name, tool_input)
+                return json.loads(result_json)
+            except Exception as e:
+                logger.error(f"Error executing tool {tool_name}: {e}")
+                return {"error": f"Tool execution failed: {str(e)}"}
 
     def _process_other_user_message(self, sender: str, message: str) -> Optional[str]:
         """Process message from non-main user using Receptionist agent"""
