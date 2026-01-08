@@ -4454,8 +4454,23 @@ async def get_settings():
 
 @app.post("/api/settings")
 async def update_settings(settings: dict):
-    """Update user settings"""
-    save_settings(settings)
+    """Update user settings - MERGES with existing settings to preserve api_keys etc."""
+    # Load existing settings first
+    existing = load_settings()
+
+    # Deep merge: update existing with new values
+    def deep_merge(base: dict, updates: dict) -> dict:
+        """Recursively merge updates into base dict"""
+        result = base.copy()
+        for key, value in updates.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    merged = deep_merge(existing, settings)
+    save_settings(merged)
 
     # Hot-reload API keys if they were updated
     if "api_keys" in settings and preloaded_conversation and preloaded_conversation.llm:
