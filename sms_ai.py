@@ -44,6 +44,21 @@ class SMSAIHandler:
         import config
         self.client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
+    def reload_api_key(self):
+        """Hot-reload API key from settings without restarting"""
+        import os
+        try:
+            settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
+            with open(settings_path) as f:
+                settings = json.load(f)
+            api_keys = settings.get("api_keys", {})
+            new_key = api_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")
+            if new_key:
+                self.client = anthropic.Anthropic(api_key=new_key)
+                logger.info("SMS AI API key hot-reloaded")
+        except Exception as e:
+            logger.error(f"Failed to reload SMS AI API key: {e}")
+
     def _normalize_phone(self, phone: str) -> str:
         """Normalize phone number to digits only"""
         if not phone:
