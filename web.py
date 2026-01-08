@@ -53,7 +53,7 @@ def split_sms(text: str, max_len: int = 155) -> list:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Versabox v1.0.0")
+app = FastAPI(title="Versabox v0.4-alpha")
 
 # Store for active calls and websocket connections
 active_calls: dict = {}
@@ -186,7 +186,7 @@ async def home():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Versabox v1.0.0</title>
+    <title>Versabox v0.4-alpha</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -548,7 +548,7 @@ async def home():
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <h1 style="margin-bottom: 0;">Versabox v1.0.0</h1>
+            <h1 style="margin-bottom: 0;">Versabox v0.4-alpha</h1>
             <div id="modem-status" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
                 <div id="modem-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #666;"></div>
                 <span id="modem-text" style="font-size: 13px; color: #888;">Modem: Checking...</span>
@@ -1053,29 +1053,208 @@ STRICT_BUDGET: $25</pre>
             </div>
         </div>
 
-        <!-- Inbox Tab -->
+        <!-- Inbox Tab - Unified Inbox -->
         <div class="tab-content" id="tab-inbox">
-            <!-- Messages Header -->
+            <!-- Header with filters -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 4px;">
                 <h2 style="margin: 0; display: flex; align-items: center; gap: 12px;">
-                    Messages
+                    Inbox
                     <span id="unread-badge" style="background: #dc3545; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 13px; display: none;">0</span>
                 </h2>
                 <button class="btn btn-primary" onclick="showSendSmsModal()">+ New Message</button>
             </div>
 
-            <!-- Conversation List -->
-            <div id="conversation-list" style="background: #111; border-radius: 12px; overflow: hidden;">
-                <div style="text-align: center; padding: 60px; color: #666;">
-                    Loading conversations...
+            <!-- Filter Bar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                <!-- Channel Filter -->
+                <div style="display: flex; gap: 4px; background: #222; border-radius: 8px; padding: 4px;">
+                    <button class="inbox-filter-btn active" data-channel="" onclick="setInboxFilter('channel', '')">All</button>
+                    <button class="inbox-filter-btn" data-channel="sms" onclick="setInboxFilter('channel', 'sms')">📱 SMS</button>
+                    <button class="inbox-filter-btn" data-channel="email" onclick="setInboxFilter('channel', 'email')">📧 Email</button>
+                    <button class="inbox-filter-btn" data-channel="call" onclick="setInboxFilter('channel', 'call')">📞 Calls</button>
+                </div>
+
+                <!-- Direction Filter -->
+                <select id="inbox-direction-filter" onchange="setInboxFilter('direction', this.value)" style="padding: 8px 12px; background: #222; border: 1px solid #333; border-radius: 8px; color: #fff;">
+                    <option value="">All Directions</option>
+                    <option value="inbound">Inbound</option>
+                    <option value="outbound">Outbound</option>
+                </select>
+
+                <!-- Search -->
+                <div style="flex: 1; min-width: 200px;">
+                    <input type="text" id="inbox-search" placeholder="Search messages..."
+                           style="width: 100%; padding: 8px 12px; background: #222; border: 1px solid #333; border-radius: 8px; color: #fff;"
+                           onkeyup="debounceInboxSearch(this.value)">
+                </div>
+            </div>
+
+            <!-- Autopilot Queue (if pending responses) -->
+            <div id="autopilot-queue-container" style="display: none; margin-bottom: 16px;">
+                <div style="background: linear-gradient(135deg, #1a3a2a 0%, #0f2a1a 100%); border: 1px solid #2d5a4d; border-radius: 12px; padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: #4ade80; display: flex; align-items: center; gap: 8px;">
+                            🤖 AI Pending Responses
+                            <span id="autopilot-queue-count" style="background: #4ade80; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px;">0</span>
+                        </h4>
+                        <button class="btn btn-secondary" onclick="toggleAutopilotQueue()" style="padding: 4px 8px; font-size: 11px;">Hide</button>
+                    </div>
+                    <div id="autopilot-queue-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Split View: Conversation List + Thread -->
+            <div style="display: grid; grid-template-columns: 350px 1fr; gap: 16px; height: calc(100vh - 280px); min-height: 400px;">
+                <!-- Left: Conversation List -->
+                <div style="background: #111; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div id="inbox-conversation-list" style="flex: 1; overflow-y: auto;">
+                        <div style="text-align: center; padding: 60px 20px; color: #666;">
+                            Loading conversations...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Message Thread -->
+                <div id="inbox-thread-panel" style="background: #111; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- Empty State -->
+                    <div id="inbox-thread-empty" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #666;">
+                        <div style="text-align: center;">
+                            <p style="font-size: 48px; margin-bottom: 16px;">💬</p>
+                            <p>Select a conversation to view messages</p>
+                        </div>
+                    </div>
+
+                    <!-- Thread Header (hidden until conversation selected) -->
+                    <div id="inbox-thread-header" style="display: none; border-bottom: 1px solid #333; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div id="inbox-thread-avatar" style="width: 40px; height: 40px; background: #4a9eff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px;">?</div>
+                                <div>
+                                    <h3 id="inbox-thread-title" style="margin: 0; font-size: 16px;">Contact</h3>
+                                    <div id="inbox-thread-channels" style="display: flex; gap: 4px; margin-top: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="btn btn-secondary" id="inbox-autopilot-toggle" onclick="toggleThreadAutopilotInline()" style="padding: 6px 12px; font-size: 12px;" title="Toggle AI auto-reply">
+                                    🤖 On
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Messages Container (hidden until conversation selected) -->
+                    <div id="inbox-thread-messages" style="display: none; flex: 1; overflow-y: auto; padding: 16px; background: #0a0a0a;"></div>
+
+                    <!-- Reply Input (hidden until conversation selected) -->
+                    <div id="inbox-thread-input" style="display: none; border-top: 1px solid #333; padding: 12px; background: #111;">
+                        <div style="display: flex; gap: 8px; align-items: flex-end;">
+                            <textarea id="inbox-reply-message" rows="1" placeholder="Type a message..."
+                                      style="flex: 1; padding: 10px 14px; background: #222; border: 1px solid #333; border-radius: 20px; color: #fff; resize: none; max-height: 100px; font-size: 15px;"
+                                      oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight, 100)+'px';"
+                                      onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendInboxReply();}"></textarea>
+                            <button class="btn btn-primary" onclick="sendInboxReply()" style="padding: 10px 16px; border-radius: 20px; min-width: 60px;">
+                                <span style="font-size: 16px;">↑</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Conversation Detail Modal (iOS Messages style) -->
-        <div class="modal-overlay" id="conversation-modal" onclick="closeConversationModal(event)">
+        <style>
+            .inbox-filter-btn {
+                padding: 6px 12px;
+                border: none;
+                background: transparent;
+                color: #888;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+            }
+            .inbox-filter-btn:hover {
+                background: #333;
+                color: #fff;
+            }
+            .inbox-filter-btn.active {
+                background: #4a9eff;
+                color: #fff;
+            }
+            .inbox-conv-item {
+                padding: 12px 16px;
+                border-bottom: 1px solid #222;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .inbox-conv-item:hover {
+                background: #1a1a1a;
+            }
+            .inbox-conv-item.active {
+                background: #1a2a3a;
+                border-left: 3px solid #4a9eff;
+            }
+            .inbox-conv-item.unread {
+                background: #111;
+            }
+            .inbox-conv-item.unread .conv-name {
+                font-weight: 600;
+            }
+            .channel-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 2px;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                background: #333;
+            }
+            .channel-badge.sms { background: #2d3a4d; color: #4a9eff; }
+            .channel-badge.email { background: #3d2d4d; color: #9a6eff; }
+            .channel-badge.call { background: #2d4a3d; color: #4ade80; }
+            .msg-bubble {
+                max-width: 75%;
+                padding: 10px 14px;
+                border-radius: 18px;
+                margin-bottom: 8px;
+                font-size: 15px;
+                line-height: 1.4;
+            }
+            .msg-bubble.inbound {
+                background: #333;
+                color: #fff;
+                border-bottom-left-radius: 4px;
+                align-self: flex-start;
+            }
+            .msg-bubble.outbound {
+                background: #0b84fe;
+                color: #fff;
+                border-bottom-right-radius: 4px;
+                align-self: flex-end;
+            }
+            .msg-bubble.ai-generated {
+                background: linear-gradient(135deg, #1a3a2a 0%, #0b6644 100%);
+                border: 1px solid #4ade80;
+            }
+            .msg-bubble.ai-generated::before {
+                content: '🤖 ';
+                font-size: 12px;
+            }
+            .msg-meta {
+                font-size: 11px;
+                color: #666;
+                margin-top: 4px;
+            }
+            .autopilot-pending-card {
+                background: #1a2a2a;
+                border: 1px solid #2d5a4d;
+                border-radius: 8px;
+                padding: 12px;
+            }
+        </style>
+
+        <!-- Legacy Conversation Detail Modal (for backward compatibility) -->
+        <div class="modal-overlay" id="conversation-modal" onclick="closeConversationModal(event)" style="display: none;">
             <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px; height: 85vh; display: flex; flex-direction: column; border-radius: 16px;">
-                <!-- Header -->
                 <div class="modal-header" style="border-bottom: 1px solid #333; padding: 16px;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <div style="width: 40px; height: 40px; background: #4a9eff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px;" id="conversation-avatar">?</div>
@@ -1084,24 +1263,13 @@ STRICT_BUDGET: $25</pre>
                             <p id="conversation-channels" style="color: #888; font-size: 12px; margin: 2px 0 0 0;"></p>
                         </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="btn btn-secondary" id="autopilot-toggle-btn" onclick="toggleThreadAutopilot()" style="padding: 6px 12px; font-size: 12px;" title="Toggle AI auto-reply for this thread">
-                            🤖 On
-                        </button>
-                        <button class="modal-close" onclick="closeConversationModal()">&times;</button>
-                    </div>
+                    <button class="modal-close" onclick="closeConversationModal()">&times;</button>
                 </div>
-
-                <!-- Messages -->
                 <div id="conversation-messages" style="flex: 1; overflow-y: auto; padding: 16px; background: #0a0a0a;"></div>
-
-                <!-- Input -->
                 <div style="border-top: 1px solid #333; padding: 12px; background: #111;">
                     <div style="display: flex; gap: 8px; align-items: flex-end;">
-                        <textarea id="reply-message" rows="1" placeholder="Message" style="flex: 1; padding: 10px 14px; background: #222; border: 1px solid #333; border-radius: 20px; color: #fff; resize: none; max-height: 100px; font-size: 15px;" oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight, 100)+'px';"></textarea>
-                        <button class="btn btn-primary" onclick="sendReply()" style="padding: 10px 16px; border-radius: 20px; min-width: 60px;">
-                            <span style="font-size: 16px;">↑</span>
-                        </button>
+                        <textarea id="reply-message" rows="1" placeholder="Message" style="flex: 1; padding: 10px 14px; background: #222; border: 1px solid #333; border-radius: 20px; color: #fff; resize: none; max-height: 100px; font-size: 15px;"></textarea>
+                        <button class="btn btn-primary" onclick="sendReply()" style="padding: 10px 16px; border-radius: 20px; min-width: 60px;">↑</button>
                     </div>
                 </div>
             </div>
@@ -1989,6 +2157,29 @@ A: 9am-5pm Monday-Friday
                 document.getElementById('active-call-card').style.display = 'block';
                 document.getElementById('call-form-card').style.display = 'none';
                 document.getElementById('transcript').innerHTML = '';
+            }
+            // Unified inbox events
+            else if (data.type === 'new_message') {
+                // Refresh inbox when new message arrives
+                loadInbox();
+                if (selectedInboxConversation === data.conversation) {
+                    selectInboxConversation(selectedInboxConversation);
+                }
+            } else if (data.type === 'pending_response') {
+                // New AI pending response - reload queue
+                loadAutopilotQueue();
+            } else if (data.type === 'unread_count') {
+                // Update unread badge
+                const badge = document.getElementById('unread-badge');
+                if (data.total > 0) {
+                    badge.textContent = data.total;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } else if (data.type === 'autopilot_approved' || data.type === 'autopilot_cancelled') {
+                loadAutopilotQueue();
+                loadInbox();
             }
         }
 
@@ -2979,6 +3170,374 @@ A: 9am-5pm Monday-Friday
             // Now redirects to loadConversations
             await loadConversations();
         }
+
+        // ========================================
+        // UNIFIED INBOX (Enhanced Split-View)
+        // ========================================
+
+        let inboxFilters = { channel: '', direction: '', search: '' };
+        let inboxSearchTimeout = null;
+        let selectedInboxConversation = null;
+        let selectedInboxAutopilot = true;
+
+        function setInboxFilter(filterType, value) {
+            inboxFilters[filterType] = value;
+
+            // Update active state on buttons
+            if (filterType === 'channel') {
+                document.querySelectorAll('.inbox-filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.channel === value);
+                });
+            }
+
+            loadInbox();
+        }
+
+        function debounceInboxSearch(value) {
+            clearTimeout(inboxSearchTimeout);
+            inboxSearchTimeout = setTimeout(() => {
+                inboxFilters.search = value;
+                loadInbox();
+            }, 300);
+        }
+
+        async function loadInbox() {
+            try {
+                // Build query params
+                const params = new URLSearchParams();
+                if (inboxFilters.channel) params.append('channel', inboxFilters.channel);
+                if (inboxFilters.direction) params.append('direction', inboxFilters.direction);
+                if (inboxFilters.search) params.append('search', inboxFilters.search);
+
+                const response = await fetch(`/api/inbox?${params}`);
+                const data = await response.json();
+                const conversations = data.conversations || [];
+
+                const container = document.getElementById('inbox-conversation-list');
+
+                if (conversations.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; color: #666;">
+                            <p style="font-size: 32px; margin-bottom: 12px;">📭</p>
+                            <p>${inboxFilters.search ? 'No messages match your search' : 'No conversations yet'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = conversations.map(conv => {
+                    const name = conv.display_name || conv.contact_address;
+                    const initial = name.charAt(0).toUpperCase();
+                    const isActive = selectedInboxConversation === conv.contact_address;
+                    const unreadClass = conv.unread_count > 0 ? 'unread' : '';
+                    const activeClass = isActive ? 'active' : '';
+
+                    // Channel badges
+                    const channels = conv.channels || [];
+                    const badges = channels.map(ch => {
+                        if (ch === 'sms') return '<span class="channel-badge sms">📱</span>';
+                        if (ch === 'email') return '<span class="channel-badge email">📧</span>';
+                        if (ch === 'call') return '<span class="channel-badge call">📞</span>';
+                        return '';
+                    }).join('');
+
+                    return `
+                        <div class="inbox-conv-item ${unreadClass} ${activeClass}" onclick="selectInboxConversation('${conv.contact_address}')">
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div style="width: 40px; height: 40px; background: #4a9eff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">${initial}</div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span class="conv-name" style="font-size: 14px;">${name}</span>
+                                        <span style="font-size: 11px; color: #666;">${formatRelativeTime(conv.last_message_at)}</span>
+                                    </div>
+                                    <div style="display: flex; gap: 4px; margin: 4px 0;">${badges}</div>
+                                    <div style="font-size: 13px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${conv.last_message_preview || 'No messages'}
+                                    </div>
+                                    ${conv.unread_count > 0 ? `<span style="background: #dc3545; color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-top: 4px; display: inline-block;">${conv.unread_count} new</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Update unread badge
+                const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+                const badge = document.getElementById('unread-badge');
+                if (totalUnread > 0) {
+                    badge.textContent = totalUnread;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Failed to load inbox:', error);
+            }
+
+            // Also load autopilot queue
+            loadAutopilotQueue();
+        }
+
+        async function selectInboxConversation(contactAddress) {
+            selectedInboxConversation = contactAddress;
+
+            // Update active state in list
+            document.querySelectorAll('.inbox-conv-item').forEach(item => {
+                item.classList.toggle('active', item.onclick.toString().includes(contactAddress));
+            });
+
+            // Show thread UI elements
+            document.getElementById('inbox-thread-empty').style.display = 'none';
+            document.getElementById('inbox-thread-header').style.display = 'block';
+            document.getElementById('inbox-thread-messages').style.display = 'block';
+            document.getElementById('inbox-thread-input').style.display = 'block';
+
+            try {
+                // Load messages and autopilot status
+                const [messagesResponse, autopilotResponse] = await Promise.all([
+                    fetch(`/api/inbox/${encodeURIComponent(contactAddress)}/messages`),
+                    fetch(`/api/conversations/${encodeURIComponent(contactAddress)}/autopilot`)
+                ]);
+
+                const messages = await messagesResponse.json();
+
+                // Get autopilot status
+                if (autopilotResponse.ok) {
+                    const autopilotData = await autopilotResponse.json();
+                    selectedInboxAutopilot = autopilotData.enabled !== false;
+                } else {
+                    selectedInboxAutopilot = true;
+                }
+
+                // Get display name from first message or contact
+                const displayName = messages.length > 0 ?
+                    (messages[0].first_name ? `${messages[0].first_name} ${messages[0].last_name || ''}`.trim() : contactAddress) :
+                    contactAddress;
+                const initial = displayName.charAt(0).toUpperCase();
+
+                // Update header
+                document.getElementById('inbox-thread-avatar').textContent = initial;
+                document.getElementById('inbox-thread-title').textContent = displayName;
+
+                // Channel badges in header
+                const channels = [...new Set(messages.map(m => m.channel))];
+                document.getElementById('inbox-thread-channels').innerHTML = channels.map(ch => {
+                    if (ch === 'sms') return '<span class="channel-badge sms">📱 SMS</span>';
+                    if (ch === 'email') return '<span class="channel-badge email">📧 Email</span>';
+                    if (ch === 'call') return '<span class="channel-badge call">📞 Call</span>';
+                    return '';
+                }).join('');
+
+                // Update autopilot button
+                updateInboxAutopilotButton();
+
+                // Render messages
+                const container = document.getElementById('inbox-thread-messages');
+                if (messages.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">No messages yet</div>';
+                } else {
+                    container.innerHTML = `<div style="display: flex; flex-direction: column; gap: 8px;">` +
+                        messages.map(msg => {
+                            const isOutbound = msg.direction === 'outbound';
+                            const isAI = msg.is_ai || msg.ai_generated;
+                            const aiClass = isAI ? 'ai-generated' : '';
+
+                            // Channel icon
+                            let channelIcon = '';
+                            if (msg.channel === 'email') channelIcon = '📧 ';
+                            else if (msg.channel === 'call') channelIcon = '📞 ';
+
+                            // For calls, show summary/transcript
+                            let content = msg.body || '';
+                            if (msg.channel === 'call') {
+                                content = msg.ai_summary || msg.body || 'Call transcript available';
+                                if (msg.call_duration) {
+                                    content = `Duration: ${Math.round(msg.call_duration / 60)}min<br>${content}`;
+                                }
+                            }
+
+                            return `
+                                <div class="msg-bubble ${isOutbound ? 'outbound' : 'inbound'} ${aiClass}" style="align-self: ${isOutbound ? 'flex-end' : 'flex-start'};">
+                                    ${channelIcon}${content}
+                                    <div class="msg-meta">${formatRelativeTime(msg.created_at)}</div>
+                                </div>
+                            `;
+                        }).join('') +
+                    `</div>`;
+
+                    // Scroll to bottom
+                    setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+                }
+
+                // Mark as read
+                await fetch(`/api/conversations/${encodeURIComponent(contactAddress)}/read`, { method: 'POST' });
+
+                // Refresh conversation list
+                loadInbox();
+
+            } catch (error) {
+                console.error('Failed to load conversation:', error);
+            }
+        }
+
+        function updateInboxAutopilotButton() {
+            const btn = document.getElementById('inbox-autopilot-toggle');
+            if (selectedInboxAutopilot) {
+                btn.innerHTML = '🤖 On';
+                btn.style.background = '#2d5a2d';
+                btn.title = 'AI auto-reply is ON. Click to disable.';
+            } else {
+                btn.innerHTML = '🤖 Off';
+                btn.style.background = '#5a2d2d';
+                btn.title = 'AI auto-reply is OFF. Click to enable.';
+            }
+        }
+
+        async function toggleThreadAutopilotInline() {
+            if (!selectedInboxConversation) return;
+
+            selectedInboxAutopilot = !selectedInboxAutopilot;
+            updateInboxAutopilotButton();
+
+            try {
+                await fetch(`/api/conversations/${encodeURIComponent(selectedInboxConversation)}/autopilot`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: selectedInboxAutopilot })
+                });
+            } catch (error) {
+                console.error('Failed to update autopilot:', error);
+            }
+        }
+
+        async function sendInboxReply() {
+            if (!selectedInboxConversation) return;
+
+            const messageInput = document.getElementById('inbox-reply-message');
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            try {
+                const response = await fetch('/api/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: selectedInboxConversation,
+                        message: message
+                    })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || 'Failed to send');
+                }
+
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+
+                // Refresh the conversation
+                selectInboxConversation(selectedInboxConversation);
+
+            } catch (error) {
+                alert('Failed to send: ' + error.message);
+            }
+        }
+
+        // ========================================
+        // AUTOPILOT QUEUE
+        // ========================================
+
+        let autopilotQueueHidden = false;
+
+        async function loadAutopilotQueue() {
+            try {
+                const response = await fetch('/api/autopilot/queue');
+                const data = await response.json();
+                const pending = data.pending || [];
+
+                const container = document.getElementById('autopilot-queue-container');
+                const list = document.getElementById('autopilot-queue-list');
+                const count = document.getElementById('autopilot-queue-count');
+
+                if (pending.length === 0 || autopilotQueueHidden) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.style.display = 'block';
+                count.textContent = pending.length;
+
+                list.innerHTML = pending.map(item => `
+                    <div class="autopilot-pending-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <div>
+                                <strong>${item.display_name || item.contact_address}</strong>
+                                <span style="color: #888; font-size: 12px; margin-left: 8px;">${item.channel || 'sms'}</span>
+                            </div>
+                            <span style="color: #888; font-size: 11px;">${formatRelativeTime(item.created_at)}</span>
+                        </div>
+                        <div style="background: #0a0a0a; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 14px; color: #ccc;">
+                            "${item.proposed_message}"
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="cancelAutopilotResponse(${item.id})" style="padding: 6px 12px; font-size: 12px;">Cancel</button>
+                            <button class="btn btn-secondary" onclick="editAutopilotResponse(${item.id})" style="padding: 6px 12px; font-size: 12px;">Edit</button>
+                            <button class="btn btn-primary" onclick="approveAutopilotResponse(${item.id})" style="padding: 6px 12px; font-size: 12px;">Send Now</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Failed to load autopilot queue:', error);
+            }
+        }
+
+        function toggleAutopilotQueue() {
+            autopilotQueueHidden = !autopilotQueueHidden;
+            document.getElementById('autopilot-queue-container').style.display = autopilotQueueHidden ? 'none' : 'block';
+        }
+
+        async function approveAutopilotResponse(queueId) {
+            try {
+                const response = await fetch(`/api/autopilot/queue/${queueId}/approve`, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to approve');
+                loadAutopilotQueue();
+                loadInbox();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function cancelAutopilotResponse(queueId) {
+            try {
+                const response = await fetch(`/api/autopilot/queue/${queueId}/cancel`, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to cancel');
+                loadAutopilotQueue();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function editAutopilotResponse(queueId) {
+            const newMessage = prompt('Edit the AI response:');
+            if (!newMessage) return;
+
+            try {
+                const response = await fetch(`/api/autopilot/queue/${queueId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proposed_message: newMessage })
+                });
+                if (!response.ok) throw new Error('Failed to update');
+                loadAutopilotQueue();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Poll unified inbox and autopilot queue
+        setInterval(loadInbox, 15000);
 
         function showSendSmsModal() {
             document.getElementById('sms-to').value = '';
@@ -4568,6 +5127,7 @@ A: 9am-5pm Monday-Friday
         loadModemStatus();
         loadSmsStatus();
         loadConversations();
+        loadInbox();  // Unified inbox
         loadAgents();
         loadLeads();
         loadLeadStats();
@@ -4953,8 +5513,8 @@ async def start_sms_monitor():
     if not primary_phone:
         raise HTTPException(400, "Primary phone number not configured in settings")
 
-    # Create AI-powered handler with full settings
-    sms_handler = SMSAIHandler(primary_phone, settings)
+    # Create AI-powered handler (settings loaded dynamically via property)
+    sms_handler = SMSAIHandler(primary_phone)
 
     # Pending auto-replies (phone -> (message, scheduled_time))
     pending_auto_replies = {}
@@ -5424,6 +5984,152 @@ async def set_thread_autopilot(contact_address: str, data: dict):
     enabled = data.get("enabled", True)
     database.set_thread_autopilot(contact_address, enabled)
     return {"status": "ok", "enabled": enabled}
+
+
+# ==========================================
+# UNIFIED INBOX API ENDPOINTS
+# ==========================================
+
+@app.get("/api/inbox")
+async def get_unified_inbox(
+    channel: Optional[str] = None,
+    direction: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    Get unified inbox conversations with filters.
+
+    Query params:
+    - channel: Filter by 'sms', 'email', or 'call'
+    - direction: Filter by 'inbound' or 'outbound'
+    - search: Full-text search query
+    - limit: Max results (default 50)
+    - offset: Pagination offset
+    """
+    conversations, total = database.get_unified_inbox(
+        channel=channel,
+        direction=direction,
+        search=search,
+        limit=limit,
+        offset=offset
+    )
+    return {
+        "conversations": conversations,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
+
+@app.get("/api/inbox/{contact_address}/messages")
+async def get_contact_messages(
+    contact_address: str,
+    channel: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
+):
+    """Get all messages for a contact across all channels"""
+    messages = database.get_contact_messages(
+        contact_address=contact_address,
+        channel=channel,
+        limit=limit,
+        offset=offset
+    )
+    return messages
+
+
+class InboxSearchRequest(BaseModel):
+    query: str
+    limit: int = 50
+    offset: int = 0
+
+
+@app.post("/api/inbox/search")
+async def search_inbox(request: InboxSearchRequest):
+    """Full-text search across all messages"""
+    results = database.search_messages_fts(
+        query=request.query,
+        limit=request.limit,
+        offset=request.offset
+    )
+    return {"results": results, "query": request.query}
+
+
+# ==========================================
+# AUTOPILOT QUEUE API ENDPOINTS
+# ==========================================
+
+@app.get("/api/autopilot/queue")
+async def get_autopilot_queue(limit: int = 50):
+    """Get all pending autopilot responses"""
+    pending = database.get_pending_autopilot_responses(limit=limit)
+    return {"pending": pending, "count": len(pending)}
+
+
+@app.get("/api/autopilot/queue/{queue_id}")
+async def get_autopilot_response(queue_id: int):
+    """Get a single autopilot queue entry"""
+    entry = database.get_autopilot_response(queue_id)
+    if not entry:
+        raise HTTPException(404, "Autopilot response not found")
+    return entry
+
+
+class AutopilotUpdateRequest(BaseModel):
+    proposed_message: Optional[str] = None
+    scheduled_send_at: Optional[str] = None
+
+
+@app.put("/api/autopilot/queue/{queue_id}")
+async def update_autopilot_response(queue_id: int, request: AutopilotUpdateRequest):
+    """Update a pending autopilot response (e.g., edit the message)"""
+    data = {}
+    if request.proposed_message is not None:
+        data["proposed_message"] = request.proposed_message
+    if request.scheduled_send_at is not None:
+        data["scheduled_send_at"] = request.scheduled_send_at
+
+    if not data:
+        raise HTTPException(400, "No fields to update")
+
+    if not database.update_autopilot_response(queue_id, data):
+        raise HTTPException(404, "Autopilot response not found or already processed")
+    return {"status": "updated"}
+
+
+@app.post("/api/autopilot/queue/{queue_id}/approve")
+async def approve_autopilot_response(queue_id: int):
+    """Approve a pending autopilot response for immediate sending"""
+    entry = database.approve_autopilot_response(queue_id)
+    if not entry:
+        raise HTTPException(404, "Autopilot response not found or already processed")
+
+    # TODO: Actually send the message via modem/email
+    # For now, just mark as approved - background processor will handle sending
+
+    await broadcast({
+        "type": "autopilot_approved",
+        "queue_id": queue_id,
+        "contact_address": entry.get("contact_address")
+    })
+
+    return {"status": "approved", "entry": entry}
+
+
+@app.post("/api/autopilot/queue/{queue_id}/cancel")
+async def cancel_autopilot_response(queue_id: int):
+    """Cancel a pending autopilot response"""
+    if not database.cancel_autopilot_response(queue_id):
+        raise HTTPException(404, "Autopilot response not found or already processed")
+
+    await broadcast({
+        "type": "autopilot_cancelled",
+        "queue_id": queue_id
+    })
+
+    return {"status": "cancelled"}
 
 
 class SmsRequest(BaseModel):

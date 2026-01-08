@@ -28,7 +28,7 @@ class SMSAIHandler:
     - Others → Receptionist (Haiku - fast model)
     """
 
-    def __init__(self, primary_number: str, settings: dict = None):
+    def __init__(self, primary_number: str):
         self.primary_number = self._normalize_phone(primary_number)
         self.pending_calls = []  # Queue of calls to make
 

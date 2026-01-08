@@ -1185,6 +1185,16 @@ def save_message(data: dict) -> int:
     # Update or create conversation
     _update_conversation(cursor, contact_address, data)
 
+    # Index for full-text search
+    if data.get('body'):
+        try:
+            cursor.execute("""
+                INSERT INTO messages_fts(rowid, body, contact_address)
+                VALUES (?, ?, ?)
+            """, (message_id, data['body'], contact_address))
+        except Exception:
+            pass  # FTS table might not exist yet during migrations
+
     conn.commit()
     conn.close()
     return message_id
@@ -1381,6 +1391,416 @@ def set_thread_autopilot(contact_address: str, enabled: bool):
 
     conn.commit()
     conn.close()
+
+
+# =============================================================================
+# Autopilot Queue CRUD
+# =============================================================================
+
+def queue_autopilot_response(
+    contact_address: str,
+    proposed_message: str,
+    agent_id: str,
+    channel: str = 'sms',
+    scheduled_send_at: datetime = None,
+    confidence: float = None,
+    reasoning: str = None
+) -> int:
+    """
+    Queue an AI-generated response for review/auto-send.
+
+    Returns: queue entry ID
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO autopilot_queue (
+            contact_address, channel, proposed_message, agent_id,
+            scheduled_send_at, confidence, reasoning
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        normalize_address(contact_address, channel),
+        channel,
+        proposed_message,
+        agent_id,
+        scheduled_send_at.isoformat() if scheduled_send_at else None,
+        confidence,
+        reasoning
+    ))
+
+    queue_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return queue_id
+
+
+def get_pending_autopilot_responses(limit: int = 50) -> List[dict]:
+    """Get all pending autopilot responses, ordered by scheduled send time"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT aq.*,
+            c.contact_name,
+            l.first_name, l.last_name, l.company
+        FROM autopilot_queue aq
+        LEFT JOIN conversations c ON aq.contact_address = c.contact_address
+        LEFT JOIN leads l ON c.lead_id = l.id
+        WHERE aq.status = 'pending'
+        ORDER BY aq.scheduled_send_at ASC, aq.created_at ASC
+        LIMIT ?
+    """, (limit,))
+
+    responses = []
+    for row in cursor.fetchall():
+        resp = dict_from_row(row)
+        # Build display name
+        if resp.get('first_name') or resp.get('last_name'):
+            resp['display_name'] = f"{resp.get('first_name', '')} {resp.get('last_name', '')}".strip()
+        elif resp.get('contact_name'):
+            resp['display_name'] = resp['contact_name']
+        else:
+            resp['display_name'] = resp['contact_address']
+        responses.append(resp)
+
+    conn.close()
+    return responses
+
+
+def get_due_autopilot_responses() -> List[dict]:
+    """Get autopilot responses that are ready to send (scheduled time has passed)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM autopilot_queue
+        WHERE status = 'pending'
+          AND scheduled_send_at IS NOT NULL
+          AND scheduled_send_at <= datetime('now')
+        ORDER BY scheduled_send_at ASC
+    """)
+
+    responses = [dict_from_row(row) for row in cursor.fetchall()]
+    conn.close()
+    return responses
+
+
+def approve_autopilot_response(queue_id: int) -> Optional[dict]:
+    """
+    Approve a pending response (marks as approved for sending).
+    Returns the queue entry or None if not found.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE autopilot_queue SET status = 'approved' WHERE id = ? AND status = 'pending'",
+        (queue_id,)
+    )
+
+    if cursor.rowcount == 0:
+        conn.close()
+        return None
+
+    cursor.execute("SELECT * FROM autopilot_queue WHERE id = ?", (queue_id,))
+    row = cursor.fetchone()
+
+    conn.commit()
+    conn.close()
+    return dict_from_row(row)
+
+
+def cancel_autopilot_response(queue_id: int) -> bool:
+    """Cancel a pending autopilot response"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE autopilot_queue SET status = 'cancelled' WHERE id = ? AND status = 'pending'",
+        (queue_id,)
+    )
+
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
+
+def mark_autopilot_sent(queue_id: int, message_id: int):
+    """Mark an autopilot response as sent and link to the message"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE autopilot_queue SET
+            status = 'sent',
+            sent_at = datetime('now'),
+            message_id = ?
+        WHERE id = ?
+    """, (message_id, queue_id))
+
+    conn.commit()
+    conn.close()
+
+
+def get_autopilot_response(queue_id: int) -> Optional[dict]:
+    """Get a single autopilot queue entry by ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM autopilot_queue WHERE id = ?", (queue_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict_from_row(row)
+
+
+def update_autopilot_response(queue_id: int, data: dict) -> bool:
+    """Update a pending autopilot response (e.g., edit the message)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    set_clause = ', '.join([f"{k} = ?" for k in data.keys()])
+    values = list(data.values()) + [queue_id]
+
+    cursor.execute(
+        f"UPDATE autopilot_queue SET {set_clause} WHERE id = ? AND status = 'pending'",
+        values
+    )
+
+    success = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
+
+# =============================================================================
+# Full-Text Search (FTS)
+# =============================================================================
+
+def search_messages_fts(query: str, limit: int = 50, offset: int = 0) -> List[dict]:
+    """
+    Full-text search across messages.
+
+    Args:
+        query: Search query (supports FTS5 syntax)
+        limit: Max results
+        offset: Pagination offset
+
+    Returns:
+        List of matching messages with highlights
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Use highlight() for search result snippets
+    cursor.execute("""
+        SELECT m.*,
+            highlight(messages_fts, 0, '<mark>', '</mark>') as body_highlight,
+            l.first_name, l.last_name, l.company
+        FROM messages_fts
+        JOIN messages m ON messages_fts.rowid = m.id
+        LEFT JOIN leads l ON m.lead_id = l.id
+        WHERE messages_fts MATCH ?
+        ORDER BY rank
+        LIMIT ? OFFSET ?
+    """, (query, limit, offset))
+
+    results = []
+    for row in cursor.fetchall():
+        msg = dict_from_row(row)
+        # Build display name
+        if msg.get('first_name') or msg.get('last_name'):
+            msg['display_name'] = f"{msg.get('first_name', '')} {msg.get('last_name', '')}".strip()
+        else:
+            msg['display_name'] = msg.get('from_address') or msg.get('to_address')
+        results.append(msg)
+
+    conn.close()
+    return results
+
+
+def index_message_for_search(message_id: int, body: str, contact_address: str):
+    """Index a single message for FTS (used when saving new messages)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO messages_fts(rowid, body, contact_address)
+            VALUES (?, ?, ?)
+        """, (message_id, body, contact_address))
+        conn.commit()
+    except Exception:
+        # FTS index may already exist for this message
+        pass
+    finally:
+        conn.close()
+
+
+def rebuild_fts_index():
+    """Rebuild the full-text search index from scratch"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Clear existing index
+    cursor.execute("DELETE FROM messages_fts")
+
+    # Re-index all messages
+    cursor.execute("""
+        INSERT INTO messages_fts(rowid, body, contact_address)
+        SELECT id, body, COALESCE(from_address, to_address)
+        FROM messages
+        WHERE body IS NOT NULL
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+# =============================================================================
+# Unified Inbox Queries
+# =============================================================================
+
+def get_unified_inbox(
+    channel: str = None,
+    direction: str = None,
+    search: str = None,
+    limit: int = 50,
+    offset: int = 0
+) -> tuple[List[dict], int]:
+    """
+    Get unified inbox conversations with filters.
+
+    Args:
+        channel: Filter by channel ('sms', 'email', 'call') or None for all
+        direction: Filter by last message direction ('inbound', 'outbound') or None
+        search: Search query (uses FTS if provided)
+        limit: Max results
+        offset: Pagination offset
+
+    Returns:
+        (conversations, total_count)
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    where_clauses = []
+    params = []
+
+    if channel:
+        where_clauses.append("c.channels LIKE ?")
+        params.append(f'%"{channel}"%')
+
+    if direction:
+        where_clauses.append("c.last_message_direction = ?")
+        params.append(direction)
+
+    where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+    # If search query provided, use FTS
+    if search:
+        # Get matching contact addresses from FTS
+        cursor.execute("""
+            SELECT DISTINCT contact_address FROM messages_fts
+            WHERE messages_fts MATCH ?
+        """, (search,))
+        matching_addresses = [row[0] for row in cursor.fetchall()]
+
+        if not matching_addresses:
+            conn.close()
+            return [], 0
+
+        placeholders = ','.join('?' * len(matching_addresses))
+        where_sql += f" AND c.contact_address IN ({placeholders})"
+        params.extend(matching_addresses)
+
+    # Get total count
+    cursor.execute(f"""
+        SELECT COUNT(*) FROM conversations c
+        WHERE {where_sql}
+    """, params)
+    total = cursor.fetchone()[0]
+
+    # Get conversations with lead info
+    cursor.execute(f"""
+        SELECT c.*,
+            l.first_name, l.last_name, l.company, l.email, l.phone
+        FROM conversations c
+        LEFT JOIN leads l ON c.lead_id = l.id
+        WHERE {where_sql}
+        ORDER BY c.last_message_at DESC
+        LIMIT ? OFFSET ?
+    """, params + [limit, offset])
+
+    conversations = []
+    for row in cursor.fetchall():
+        conv = dict_from_row(row)
+        # Build display name
+        if conv.get('first_name') or conv.get('last_name'):
+            conv['display_name'] = f"{conv.get('first_name', '')} {conv.get('last_name', '')}".strip()
+        elif conv.get('company'):
+            conv['display_name'] = conv['company']
+        else:
+            conv['display_name'] = conv['contact_address']
+        # Parse channels JSON
+        conv['channels'] = json.loads(conv.get('channels') or '[]')
+        conversations.append(conv)
+
+    conn.close()
+    return conversations, total
+
+
+def get_contact_messages(
+    contact_address: str,
+    channel: str = None,
+    limit: int = 100,
+    offset: int = 0
+) -> List[dict]:
+    """
+    Get all messages for a contact (unified across all channels).
+
+    Args:
+        contact_address: Phone number or email
+        channel: Optional filter by channel
+        limit: Max results
+        offset: Pagination offset
+
+    Returns:
+        List of messages in chronological order
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    normalized = normalize_address(contact_address)
+
+    where_clauses = ["(thread_id = ? OR from_address = ? OR to_address = ?)"]
+    params = [normalized, normalized, normalized]
+
+    if channel:
+        where_clauses.append("channel = ?")
+        params.append(channel)
+
+    where_sql = " AND ".join(where_clauses)
+
+    cursor.execute(f"""
+        SELECT m.*,
+            l.first_name, l.last_name, l.company
+        FROM messages m
+        LEFT JOIN leads l ON m.lead_id = l.id
+        WHERE {where_sql}
+        ORDER BY m.created_at ASC
+        LIMIT ? OFFSET ?
+    """, params + [limit, offset])
+
+    messages = []
+    for row in cursor.fetchall():
+        msg = dict_from_row(row)
+        # Determine if this is an AI-generated message
+        msg['is_ai'] = bool(msg.get('ai_generated'))
+        messages.append(msg)
+
+    conn.close()
+    return messages
 
 
 # =============================================================================
@@ -1813,6 +2233,76 @@ def migrate_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_settings_category ON settings(category)")
         conn.commit()
         print("Settings table created!")
+
+    # ==========================================================================
+    # Unified Inbox + Autopilot Enhancements (v0.5)
+    # ==========================================================================
+
+    # Add call metadata columns to messages table
+    cursor.execute("PRAGMA table_info(messages)")
+    msg_columns = [col[1] for col in cursor.fetchall()]
+
+    if 'call_duration' not in msg_columns:
+        print("Adding call metadata columns to messages table...")
+        cursor.execute("ALTER TABLE messages ADD COLUMN call_duration INTEGER")
+        cursor.execute("ALTER TABLE messages ADD COLUMN call_recording_path TEXT")
+        cursor.execute("ALTER TABLE messages ADD COLUMN ai_summary TEXT")
+        conn.commit()
+        print("Call metadata columns added!")
+
+    if 'ai_generated' not in msg_columns:
+        print("Adding autopilot attribution columns to messages table...")
+        cursor.execute("ALTER TABLE messages ADD COLUMN ai_generated INTEGER DEFAULT 0")
+        cursor.execute("ALTER TABLE messages ADD COLUMN agent_id TEXT")
+        cursor.execute("ALTER TABLE messages ADD COLUMN decision_confidence REAL")
+        conn.commit()
+        print("Autopilot attribution columns added!")
+
+    # Create autopilot_queue table for persistent pending responses
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='autopilot_queue'")
+    if not cursor.fetchone():
+        print("Creating autopilot_queue table...")
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS autopilot_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            contact_address TEXT NOT NULL,
+            channel TEXT NOT NULL DEFAULT 'sms',
+            proposed_message TEXT NOT NULL,
+            agent_id TEXT NOT NULL,
+            scheduled_send_at DATETIME,
+            status TEXT DEFAULT 'pending',
+            confidence REAL,
+            reasoning TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            sent_at DATETIME,
+            message_id INTEGER,
+            FOREIGN KEY (message_id) REFERENCES messages(id)
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_autopilot_queue_status ON autopilot_queue(status, scheduled_send_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_autopilot_queue_contact ON autopilot_queue(contact_address)")
+        conn.commit()
+        print("autopilot_queue table created!")
+
+    # Create FTS5 virtual table for full-text search
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='messages_fts'")
+    if not cursor.fetchone():
+        print("Creating messages_fts full-text search table...")
+        cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
+            body,
+            contact_address,
+            content=messages,
+            content_rowid=id
+        )
+        """)
+        # Populate initial index from existing messages
+        cursor.execute("""
+        INSERT INTO messages_fts(rowid, body, contact_address)
+        SELECT id, body, COALESCE(from_address, to_address) FROM messages WHERE body IS NOT NULL
+        """)
+        conn.commit()
+        print("messages_fts table created and indexed!")
 
     # Check if settings table is empty and import from settings.json
     cursor.execute("SELECT COUNT(*) FROM settings")
