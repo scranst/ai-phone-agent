@@ -148,6 +148,111 @@ ASSISTANT_TOOLS = [
             },
             "required": ["date", "time", "name", "phone"]
         }
+    },
+    {
+        "name": "delete_lead",
+        "description": "Delete a lead/contact from the database. Use search to find them first if you don't have the ID.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "lead_id": {
+                    "type": "integer",
+                    "description": "ID of the lead to delete"
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Search term to find and delete lead (use if you don't have ID)"
+                }
+            }
+        }
+    },
+    {
+        "name": "delete_leads_bulk",
+        "description": "Delete multiple leads at once. Provide a list of IDs or a search query to match.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "lead_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "List of lead IDs to delete"
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Search term - all matching leads will be deleted"
+                },
+                "confirm": {
+                    "type": "boolean",
+                    "description": "Must be true to confirm bulk deletion"
+                }
+            },
+            "required": ["confirm"]
+        }
+    },
+    {
+        "name": "create_lead_list",
+        "description": "Create a new lead list to organize contacts into groups.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the list (e.g., 'Hot Leads', 'Portland HVAC Companies')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Optional description of the list"
+                }
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "add_to_lead_list",
+        "description": "Add leads to an existing list. Search for leads to add or provide IDs.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "list_name": {
+                    "type": "string",
+                    "description": "Name of the list to add to"
+                },
+                "lead_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "List of lead IDs to add"
+                },
+                "search": {
+                    "type": "string",
+                    "description": "Search term - all matching leads will be added to list"
+                }
+            },
+            "required": ["list_name"]
+        }
+    },
+    {
+        "name": "get_lead_lists",
+        "description": "Get all lead lists with their counts.",
+        "input_schema": {
+            "type": "object",
+            "properties": {}
+        }
+    },
+    {
+        "name": "create_lead",
+        "description": "Create a new lead/contact in the database.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "first_name": {"type": "string", "description": "First name"},
+                "last_name": {"type": "string", "description": "Last name"},
+                "company": {"type": "string", "description": "Company name"},
+                "phone": {"type": "string", "description": "Phone number"},
+                "email": {"type": "string", "description": "Email address"},
+                "title": {"type": "string", "description": "Job title"},
+                "notes": {"type": "string", "description": "Notes about this contact"}
+            }
+        }
     }
 ]
 
@@ -655,6 +760,161 @@ def book_calendar_appointment(date_str: str, time_str: str, name: str, phone: st
 
 
 # =============================================================================
+# Lead Management Tools
+# =============================================================================
+
+def delete_lead(lead_id: int = None, search: str = None) -> dict:
+    """Delete a lead by ID or search term"""
+    try:
+        import database
+
+        if lead_id:
+            # Delete by ID
+            success = database.delete_lead(lead_id)
+            if success:
+                return {"success": True, "message": f"Deleted lead #{lead_id}"}
+            else:
+                return {"success": False, "error": f"Lead #{lead_id} not found"}
+
+        elif search:
+            # Find and delete by search
+            leads, _ = database.search_leads(search=search, limit=1)
+            if not leads:
+                return {"success": False, "error": f"No lead found matching '{search}'"}
+
+            lead = leads[0]
+            name = f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or lead.get('company', 'Unknown')
+            success = database.delete_lead(lead['id'])
+            if success:
+                return {"success": True, "message": f"Deleted lead: {name} (ID #{lead['id']})"}
+            else:
+                return {"success": False, "error": "Failed to delete lead"}
+
+        else:
+            return {"success": False, "error": "Provide either lead_id or search term"}
+
+    except Exception as e:
+        logger.error(f"Error deleting lead: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def delete_leads_bulk(lead_ids: list = None, search: str = None, confirm: bool = False) -> dict:
+    """Delete multiple leads by IDs or search"""
+    try:
+        import database
+
+        if not confirm:
+            return {"success": False, "error": "Must set confirm=true to delete leads"}
+
+        if lead_ids:
+            # Delete by IDs
+            count = database.delete_leads_bulk(lead_ids)
+            return {"success": True, "deleted_count": count, "message": f"Deleted {count} leads"}
+
+        elif search:
+            # Find all matching and delete
+            leads, total = database.search_leads(search=search, limit=1000)
+            if not leads:
+                return {"success": False, "error": f"No leads found matching '{search}'"}
+
+            lead_ids = [l['id'] for l in leads]
+            count = database.delete_leads_bulk(lead_ids)
+            return {"success": True, "deleted_count": count, "message": f"Deleted {count} leads matching '{search}'"}
+
+        else:
+            return {"success": False, "error": "Provide either lead_ids or search term"}
+
+    except Exception as e:
+        logger.error(f"Error bulk deleting leads: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def create_lead_list_tool(name: str, description: str = "") -> dict:
+    """Create a new lead list"""
+    try:
+        import database
+        list_id = database.create_lead_list(name, description)
+        return {"success": True, "list_id": list_id, "message": f"Created list '{name}' (ID #{list_id})"}
+    except Exception as e:
+        logger.error(f"Error creating lead list: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def add_to_lead_list(list_name: str, lead_ids: list = None, search: str = None) -> dict:
+    """Add leads to a list"""
+    try:
+        import database
+
+        # Find the list
+        lists = database.get_lead_lists()
+        target_list = None
+        for l in lists:
+            if l['name'].lower() == list_name.lower():
+                target_list = l
+                break
+
+        if not target_list:
+            return {"success": False, "error": f"List '{list_name}' not found"}
+
+        # Get lead IDs
+        ids_to_add = []
+        if lead_ids:
+            ids_to_add = lead_ids
+        elif search:
+            leads, _ = database.search_leads(search=search, limit=1000)
+            ids_to_add = [l['id'] for l in leads]
+        else:
+            return {"success": False, "error": "Provide either lead_ids or search term"}
+
+        if not ids_to_add:
+            return {"success": False, "error": "No leads to add"}
+
+        database.add_leads_to_list(target_list['id'], ids_to_add)
+        return {"success": True, "added_count": len(ids_to_add), "message": f"Added {len(ids_to_add)} leads to '{list_name}'"}
+
+    except Exception as e:
+        logger.error(f"Error adding to lead list: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def get_lead_lists_tool() -> dict:
+    """Get all lead lists"""
+    try:
+        import database
+        lists = database.get_lead_lists()
+        return {
+            "success": True,
+            "count": len(lists),
+            "lists": [{"id": l['id'], "name": l['name'], "description": l.get('description', ''), "lead_count": l.get('lead_count', 0)} for l in lists]
+        }
+    except Exception as e:
+        logger.error(f"Error getting lead lists: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def create_lead_tool(first_name: str = "", last_name: str = "", company: str = "",
+                     phone: str = "", email: str = "", title: str = "", notes: str = "") -> dict:
+    """Create a new lead"""
+    try:
+        import database
+        lead_id = database.create_lead({
+            "first_name": first_name,
+            "last_name": last_name,
+            "company": company,
+            "phone": phone,
+            "email": email,
+            "title": title,
+            "notes": notes,
+            "status": "new"
+        })
+        name = f"{first_name} {last_name}".strip() or company or "New Lead"
+        return {"success": True, "lead_id": lead_id, "message": f"Created lead: {name} (ID #{lead_id})"}
+    except Exception as e:
+        logger.error(f"Error creating lead: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
 # Tool Dispatcher
 # =============================================================================
 
@@ -692,6 +952,40 @@ def execute_tool(tool_name: str, tool_input: dict) -> str:
             tool_input.get("name", ""),
             tool_input.get("phone", ""),
             tool_input.get("email", "")
+        )
+    elif tool_name == "delete_lead":
+        result = delete_lead(
+            tool_input.get("lead_id"),
+            tool_input.get("search")
+        )
+    elif tool_name == "delete_leads_bulk":
+        result = delete_leads_bulk(
+            tool_input.get("lead_ids"),
+            tool_input.get("search"),
+            tool_input.get("confirm", False)
+        )
+    elif tool_name == "create_lead_list":
+        result = create_lead_list_tool(
+            tool_input.get("name", ""),
+            tool_input.get("description", "")
+        )
+    elif tool_name == "add_to_lead_list":
+        result = add_to_lead_list(
+            tool_input.get("list_name", ""),
+            tool_input.get("lead_ids"),
+            tool_input.get("search")
+        )
+    elif tool_name == "get_lead_lists":
+        result = get_lead_lists_tool()
+    elif tool_name == "create_lead":
+        result = create_lead_tool(
+            tool_input.get("first_name", ""),
+            tool_input.get("last_name", ""),
+            tool_input.get("company", ""),
+            tool_input.get("phone", ""),
+            tool_input.get("email", ""),
+            tool_input.get("title", ""),
+            tool_input.get("notes", "")
         )
     else:
         result = {"error": f"Unknown tool: {tool_name}"}

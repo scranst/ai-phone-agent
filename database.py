@@ -477,6 +477,19 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_accounts_email ON email_accounts(email)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_accounts_status ON email_accounts(status)")
 
+    # =========================================================================
+    # SETTINGS TABLE - All configuration stored here (not in JSON files)
+    # =========================================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        category TEXT DEFAULT 'general',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_settings_category ON settings(category)")
+
     conn.commit()
     conn.close()
     print(f"Database initialized at {DB_PATH}")
@@ -589,6 +602,31 @@ def delete_lead(lead_id: int) -> bool:
     conn.commit()
     conn.close()
     return success
+
+
+def delete_leads_bulk(lead_ids: List[int]) -> int:
+    """Delete multiple leads and their related data. Returns count of deleted leads."""
+    if not lead_ids:
+        return 0
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    placeholders = ','.join('?' * len(lead_ids))
+
+    # Delete interactions first
+    cursor.execute(f"DELETE FROM interactions WHERE lead_id IN ({placeholders})", lead_ids)
+    # Delete list memberships
+    cursor.execute(f"DELETE FROM lead_list_members WHERE lead_id IN ({placeholders})", lead_ids)
+    # Delete enrollments
+    cursor.execute(f"DELETE FROM campaign_enrollments WHERE lead_id IN ({placeholders})", lead_ids)
+    # Delete leads
+    cursor.execute(f"DELETE FROM leads WHERE id IN ({placeholders})", lead_ids)
+    deleted_count = cursor.rowcount
+
+    conn.commit()
+    conn.close()
+    return deleted_count
 
 
 def search_leads(
@@ -1331,6 +1369,165 @@ def set_thread_autopilot(contact_address: str, enabled: bool):
     conn.close()
 
 
+# =============================================================================
+# Settings CRUD (replaces settings.json)
+# =============================================================================
+
+def get_setting(key: str, default: str = None) -> Optional[str]:
+    """Get a single setting by key"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row['value'] if row else default
+
+
+def set_setting(key: str, value: str, category: str = 'general'):
+    """Set a single setting"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO settings (key, value, category, updated_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            category = excluded.category,
+            updated_at = datetime('now')
+    """, (key, value, category))
+    conn.commit()
+    conn.close()
+
+
+def get_settings_by_category(category: str) -> Dict[str, str]:
+    """Get all settings in a category as a dict"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT key, value FROM settings WHERE category = ?", (category,))
+    result = {row['key']: row['value'] for row in cursor.fetchall()}
+    conn.close()
+    return result
+
+
+def get_all_settings() -> dict:
+    """
+    Get all settings as a nested dict matching the old settings.json structure.
+    Reconstructs: {api_keys: {...}, agents: {...}, integrations: {...}, ...}
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT key, value, category FROM settings")
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Build nested structure
+    result = {
+        'api_keys': {},
+        'agents': {},
+        'integrations': {},
+    }
+
+    for row in rows:
+        key, value, category = row['key'], row['value'], row['category']
+
+        # Try to parse JSON values (for agents, etc.)
+        try:
+            parsed_value = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            parsed_value = value
+
+        if category == 'api_keys':
+            result['api_keys'][key] = parsed_value
+        elif category == 'agents':
+            # Agent configs stored as agent_<id> with JSON value
+            if key.startswith('agent_'):
+                agent_id = key[6:]  # Remove 'agent_' prefix
+                result['agents'][agent_id] = parsed_value
+            else:
+                result['agents'][key] = parsed_value
+        elif category == 'integrations':
+            result['integrations'][key] = parsed_value
+        else:
+            # Top-level settings (user info, etc.)
+            result[key] = parsed_value
+
+    return result
+
+
+def set_settings_bulk(settings: dict, category_map: dict = None):
+    """
+    Save settings from a nested dict (like old settings.json structure).
+    Flattens and stores each key with appropriate category.
+    """
+    if category_map is None:
+        category_map = {
+            'ANTHROPIC_API_KEY': 'api_keys',
+            'OPENAI_API_KEY': 'api_keys',
+            'GOOGLE_API_KEY': 'api_keys',
+            'GOOGLE_CSE_ID': 'api_keys',
+            'APIFY_API_KEY': 'api_keys',
+            'AMADEUS_API_KEY': 'api_keys',
+            'AMADEUS_API_SECRET': 'api_keys',
+            'NEVERBOUNCE_API_KEY': 'api_keys',
+            'PHONEVALIDATOR_API_KEY': 'api_keys',
+            'CALENDAR_PROVIDER': 'integrations',
+            'CAL_COM_API_KEY': 'integrations',
+            'CAL_COM_EVENT_TYPE_ID': 'integrations',
+            'CALENDLY_API_KEY': 'integrations',
+            'CALENDLY_USER_URI': 'integrations',
+        }
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    def save_item(key: str, value, category: str):
+        # Serialize complex values as JSON
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value)
+        else:
+            value = str(value) if value is not None else ''
+
+        cursor.execute("""
+            INSERT INTO settings (key, value, category, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                category = excluded.category,
+                updated_at = datetime('now')
+        """, (key, value, category))
+
+    # Handle nested structures
+    for key, value in settings.items():
+        if key == 'api_keys' and isinstance(value, dict):
+            for k, v in value.items():
+                save_item(k, v, 'api_keys')
+        elif key == 'agents' and isinstance(value, dict):
+            for agent_id, agent_config in value.items():
+                save_item(f'agent_{agent_id}', agent_config, 'agents')
+        elif key == 'integrations' and isinstance(value, dict):
+            for k, v in value.items():
+                save_item(k, v, 'integrations')
+        else:
+            # Top-level setting - determine category
+            category = category_map.get(key, 'user_info')
+            save_item(key, value, category)
+
+    conn.commit()
+    conn.close()
+
+
+def import_settings_from_json(json_path: str) -> bool:
+    """Import settings from a JSON file (for migration)"""
+    try:
+        with open(json_path, 'r') as f:
+            settings = json.load(f)
+        set_settings_bulk(settings)
+        return True
+    except Exception as e:
+        print(f"Error importing settings from {json_path}: {e}")
+        return False
+
+
 def migrate_db():
     """Run any necessary migrations"""
     conn = get_db()
@@ -1560,6 +1757,40 @@ def migrate_db():
                 except:
                     pass
             break
+
+    # Check if settings table exists and migrate from JSON if needed
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+    if not cursor.fetchone():
+        print("Creating settings table...")
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            category TEXT DEFAULT 'general',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_settings_category ON settings(category)")
+        conn.commit()
+        print("Settings table created!")
+
+    # Check if settings table is empty and import from settings.json
+    cursor.execute("SELECT COUNT(*) FROM settings")
+    settings_count = cursor.fetchone()[0]
+
+    if settings_count == 0:
+        # Try to import from settings.json
+        settings_json_path = Path(__file__).parent / "settings.json"
+        if settings_json_path.exists():
+            print("Migrating settings from settings.json to database...")
+            conn.close()  # Close before import (import_settings_from_json opens its own connection)
+            if import_settings_from_json(str(settings_json_path)):
+                print("Settings migrated successfully from settings.json!")
+            else:
+                print("Warning: Failed to migrate settings from settings.json")
+            return  # Already closed connection
+        else:
+            print("No settings.json found - starting with empty settings")
 
     conn.close()
 

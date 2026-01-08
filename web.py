@@ -138,25 +138,17 @@ async def startup_event():
             logger.warning(f"Could not auto-start incoming listener: {e}")
 
 
-# Settings file path
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
-
-
+# Settings are now stored in the database - these functions use api_keys module
 def load_settings() -> dict:
-    """Load settings from file"""
-    if os.path.exists(SETTINGS_FILE):
-        try:
-            with open(SETTINGS_FILE) as f:
-                return json.load(f)
-        except:
-            pass
-    return {}
+    """Load settings from database"""
+    import api_keys
+    return api_keys.get_settings()
 
 
 def save_settings(settings: dict):
-    """Save settings to file"""
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=2)
+    """Save settings to database"""
+    import api_keys
+    api_keys.save_settings(settings)
 
 
 class CallRequestModel(BaseModel):

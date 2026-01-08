@@ -1,7 +1,7 @@
 """
 Centralized Settings Management
 
-Single source of truth for ALL settings. Always reads fresh from settings.json.
+Single source of truth for ALL settings. Reads from SQLite database.
 No caching, no hot-reload needed - just call the function when you need it.
 
 Includes:
@@ -20,21 +20,29 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
-
 
 # =============================================================================
 # Core Settings Access
 # =============================================================================
 
 def get_settings() -> dict:
-    """Get all settings fresh from file"""
+    """Get all settings from database"""
     try:
-        with open(SETTINGS_FILE) as f:
-            return json.load(f)
+        import database
+        return database.get_all_settings()
     except Exception as e:
-        logger.warning(f"Failed to read settings: {e}")
-        return {}
+        logger.warning(f"Failed to read settings from database: {e}")
+        return {'api_keys': {}, 'agents': {}, 'integrations': {}}
+
+
+def save_settings(settings: dict):
+    """Save settings to database"""
+    try:
+        import database
+        database.set_settings_bulk(settings)
+    except Exception as e:
+        logger.error(f"Failed to save settings to database: {e}")
+        raise
 
 
 def get_setting(key: str, default: Any = None) -> Any:
