@@ -698,6 +698,7 @@ STRICT_BUDGET: $25</pre>
                             Import CSV
                             <input type="file" id="csv-import" accept=".csv" style="display: none;" onchange="handleCsvImport(this)">
                         </label>
+                        <button class="btn btn-secondary" onclick="showListsModal()">Lists</button>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <input type="text" id="leads-search" placeholder="Search leads..." style="width: 200px;" onkeyup="debounceSearch()">
@@ -711,6 +712,15 @@ STRICT_BUDGET: $25</pre>
                             <option value="WON">Won</option>
                             <option value="LOST">Lost</option>
                         </select>
+                    </div>
+                </div>
+                <!-- Bulk Actions Bar (hidden by default) -->
+                <div id="bulk-actions-bar" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #333;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span id="selected-count" style="color: #4a9eff; font-weight: 500;">0 selected</span>
+                        <button class="btn btn-secondary" onclick="addSelectedToList()">Add to List</button>
+                        <button class="btn" style="background: #dc3545;" onclick="deleteSelectedLeads()">Delete Selected</button>
+                        <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
                     </div>
                 </div>
             </div>
@@ -740,6 +750,9 @@ STRICT_BUDGET: $25</pre>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding: 12px; width: 40px;">
+                                <input type="checkbox" id="select-all-leads" onchange="toggleSelectAll(this)" style="width: 18px; height: 18px; cursor: pointer;">
+                            </th>
                             <th style="padding: 12px; color: #888; font-weight: 500;">Name</th>
                             <th style="padding: 12px; color: #888; font-weight: 500;">Company</th>
                             <th style="padding: 12px; color: #888; font-weight: 500;">Phone</th>
@@ -749,7 +762,7 @@ STRICT_BUDGET: $25</pre>
                         </tr>
                     </thead>
                     <tbody id="leads-table-body">
-                        <tr><td colspan="6" style="padding: 40px; text-align: center; color: #666;">Loading leads...</td></tr>
+                        <tr><td colspan="7" style="padding: 40px; text-align: center; color: #666;">Loading leads...</td></tr>
                     </tbody>
                 </table>
                 <div id="leads-pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px;"></div>
@@ -1093,6 +1106,44 @@ STRICT_BUDGET: $25</pre>
                 </div>
             </div>
         </div><!-- End Inbox Tab -->
+
+        <!-- Lead Lists Modal -->
+        <div class="modal-overlay" id="lists-modal" onclick="closeListsModal(event)">
+            <div class="modal" onclick="event.stopPropagation()" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>Lead Lists</h3>
+                    <button class="modal-close" onclick="closeListsModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Create New List -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <input type="text" id="new-list-name" placeholder="New list name..." style="flex: 1;">
+                        <button class="btn btn-primary" onclick="createNewList()">Create List</button>
+                    </div>
+
+                    <!-- Lists Table -->
+                    <div id="lists-container">
+                        <p style="color: #666; text-align: center;">Loading lists...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add to List Modal -->
+        <div class="modal-overlay" id="add-to-list-modal" onclick="closeAddToListModal(event)">
+            <div class="modal" onclick="event.stopPropagation()" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h3>Add to List</h3>
+                    <button class="modal-close" onclick="closeAddToListModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px;"><span id="add-to-list-count">0</span> lead(s) selected</p>
+                    <div id="list-options-container">
+                        <p style="color: #666; text-align: center;">Loading lists...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Send SMS Modal -->
         <div class="modal-overlay" id="sms-modal" onclick="closeSmsModal(event)">
@@ -3238,31 +3289,315 @@ A: 9am-5pm Monday-Friday
             }
         }
 
+        let selectedLeadIds = new Set();
+
         function renderLeadsTable(leads) {
             const tbody = document.getElementById('leads-table-body');
 
             if (!leads || leads.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px; text-align: center; color: #666;">No leads found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: #666;">No leads found</td></tr>';
                 return;
             }
 
             tbody.innerHTML = leads.map(lead => `
-                <tr style="border-bottom: 1px solid #222; cursor: pointer;" onclick="showLeadDetails(${lead.id})">
-                    <td style="padding: 12px;">${lead.first_name || ''} ${lead.last_name || ''}</td>
-                    <td style="padding: 12px; color: #888;">${lead.company || '-'}</td>
-                    <td style="padding: 12px;">${lead.phone || '-'}</td>
-                    <td style="padding: 12px;">
+                <tr style="border-bottom: 1px solid #222;" data-lead-id="${lead.id}">
+                    <td style="padding: 12px;" onclick="event.stopPropagation();">
+                        <input type="checkbox" class="lead-checkbox" value="${lead.id}"
+                               ${selectedLeadIds.has(lead.id) ? 'checked' : ''}
+                               onchange="toggleLeadSelection(${lead.id}, this.checked)"
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                    </td>
+                    <td style="padding: 12px; cursor: pointer;" onclick="showLeadDetails(${lead.id})">${lead.first_name || ''} ${lead.last_name || ''}</td>
+                    <td style="padding: 12px; color: #888; cursor: pointer;" onclick="showLeadDetails(${lead.id})">${lead.company || '-'}</td>
+                    <td style="padding: 12px; cursor: pointer;" onclick="showLeadDetails(${lead.id})">${lead.phone || '-'}</td>
+                    <td style="padding: 12px; cursor: pointer;" onclick="showLeadDetails(${lead.id})">
                         <span style="padding: 4px 8px; border-radius: 12px; font-size: 11px; background: ${getStatusColor(lead.status)}; color: #fff;">
                             ${lead.status || 'NEW'}
                         </span>
                     </td>
-                    <td style="padding: 12px; color: #888;">${formatDate(lead.last_contacted_at)}</td>
+                    <td style="padding: 12px; color: #888; cursor: pointer;" onclick="showLeadDetails(${lead.id})">${formatDate(lead.last_contacted_at)}</td>
                     <td style="padding: 12px;">
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="event.stopPropagation(); editLead(${lead.id})">Edit</button>
                         <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #2d5a2d;" onclick="event.stopPropagation(); callLead(${lead.id}, '${lead.phone}')">Call</button>
+                        <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #dc3545;" onclick="event.stopPropagation(); deleteLead(${lead.id})">Delete</button>
                     </td>
                 </tr>
             `).join('');
+
+            updateBulkActionsBar();
+        }
+
+        function toggleLeadSelection(leadId, isSelected) {
+            if (isSelected) {
+                selectedLeadIds.add(leadId);
+            } else {
+                selectedLeadIds.delete(leadId);
+            }
+            updateBulkActionsBar();
+        }
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.lead-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                const leadId = parseInt(cb.value);
+                if (checkbox.checked) {
+                    selectedLeadIds.add(leadId);
+                } else {
+                    selectedLeadIds.delete(leadId);
+                }
+            });
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulk-actions-bar');
+            const countSpan = document.getElementById('selected-count');
+            const selectAllCheckbox = document.getElementById('select-all-leads');
+
+            if (selectedLeadIds.size > 0) {
+                bar.style.display = 'block';
+                countSpan.textContent = `${selectedLeadIds.size} selected`;
+            } else {
+                bar.style.display = 'none';
+            }
+
+            // Update select-all checkbox state
+            const checkboxes = document.querySelectorAll('.lead-checkbox');
+            if (checkboxes.length > 0 && selectedLeadIds.size === checkboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (selectedLeadIds.size > 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+
+        function clearSelection() {
+            selectedLeadIds.clear();
+            document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all-leads').checked = false;
+            updateBulkActionsBar();
+        }
+
+        async function deleteLead(leadId) {
+            if (!confirm('Are you sure you want to delete this lead?')) return;
+
+            try {
+                const response = await fetch(`/api/leads/${leadId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    selectedLeadIds.delete(leadId);
+                    loadLeads();
+                    loadLeadStats();
+                } else {
+                    alert('Failed to delete lead');
+                }
+            } catch (error) {
+                console.error('Error deleting lead:', error);
+                alert('Error deleting lead');
+            }
+        }
+
+        async function deleteSelectedLeads() {
+            if (selectedLeadIds.size === 0) return;
+
+            if (!confirm(`Are you sure you want to delete ${selectedLeadIds.size} lead(s)?`)) return;
+
+            try {
+                const response = await fetch('/api/leads/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lead_ids: Array.from(selectedLeadIds) })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    selectedLeadIds.clear();
+                    loadLeads();
+                    loadLeadStats();
+                    alert(`Deleted ${data.deleted_count} lead(s)`);
+                } else {
+                    alert('Failed to delete leads');
+                }
+            } catch (error) {
+                console.error('Error deleting leads:', error);
+                alert('Error deleting leads');
+            }
+        }
+
+        // Lead Lists Functions
+        let leadLists = [];
+
+        async function loadLeadLists() {
+            try {
+                const response = await fetch('/api/lead-lists');
+                leadLists = await response.json();
+                return leadLists;
+            } catch (error) {
+                console.error('Error loading lists:', error);
+                return [];
+            }
+        }
+
+        function showListsModal() {
+            document.getElementById('lists-modal').classList.add('active');
+            renderListsModal();
+        }
+
+        function closeListsModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('lists-modal').classList.remove('active');
+            }
+        }
+
+        async function renderListsModal() {
+            const container = document.getElementById('lists-container');
+            container.innerHTML = '<p style="color: #666; text-align: center;">Loading...</p>';
+
+            const lists = await loadLeadLists();
+
+            if (lists.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center;">No lists yet. Create one above!</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #333;">
+                            <th style="padding: 8px; text-align: left; color: #888;">Name</th>
+                            <th style="padding: 8px; text-align: left; color: #888;">Leads</th>
+                            <th style="padding: 8px; text-align: left; color: #888;">Created</th>
+                            <th style="padding: 8px; text-align: right; color: #888;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lists.map(list => `
+                            <tr style="border-bottom: 1px solid #222;">
+                                <td style="padding: 12px;">${list.name}</td>
+                                <td style="padding: 12px; color: #888;">${list.lead_count || 0}</td>
+                                <td style="padding: 12px; color: #888;">${formatDate(list.created_at)}</td>
+                                <td style="padding: 12px; text-align: right;">
+                                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="viewListLeads(${list.id}, '${list.name}')">View</button>
+                                    <button class="btn" style="padding: 4px 8px; font-size: 11px; background: #dc3545;" onclick="deleteList(${list.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function createNewList() {
+            const name = document.getElementById('new-list-name').value.trim();
+            if (!name) {
+                alert('Please enter a list name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/lead-lists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                if (response.ok) {
+                    document.getElementById('new-list-name').value = '';
+                    renderListsModal();
+                } else {
+                    alert('Failed to create list');
+                }
+            } catch (error) {
+                console.error('Error creating list:', error);
+                alert('Error creating list');
+            }
+        }
+
+        async function deleteList(listId) {
+            if (!confirm('Are you sure you want to delete this list?')) return;
+
+            try {
+                const response = await fetch(`/api/lead-lists/${listId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    renderListsModal();
+                } else {
+                    alert('Failed to delete list');
+                }
+            } catch (error) {
+                console.error('Error deleting list:', error);
+                alert('Error deleting list');
+            }
+        }
+
+        async function viewListLeads(listId, listName) {
+            // Filter leads by list - for now just show in a simple alert
+            // Could extend to filter the main table
+            try {
+                const response = await fetch(`/api/lead-lists/${listId}/leads`);
+                const leads = await response.json();
+                alert(`List "${listName}" has ${leads.length} lead(s)`);
+            } catch (error) {
+                console.error('Error viewing list:', error);
+            }
+        }
+
+        function addSelectedToList() {
+            if (selectedLeadIds.size === 0) {
+                alert('No leads selected');
+                return;
+            }
+            document.getElementById('add-to-list-count').textContent = selectedLeadIds.size;
+            document.getElementById('add-to-list-modal').classList.add('active');
+            renderAddToListOptions();
+        }
+
+        function closeAddToListModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('add-to-list-modal').classList.remove('active');
+            }
+        }
+
+        async function renderAddToListOptions() {
+            const container = document.getElementById('list-options-container');
+            container.innerHTML = '<p style="color: #666; text-align: center;">Loading...</p>';
+
+            const lists = await loadLeadLists();
+
+            if (lists.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center;">No lists yet. Create one in the Lists manager first.</p>';
+                return;
+            }
+
+            container.innerHTML = lists.map(list => `
+                <button class="btn btn-secondary" style="width: 100%; margin-bottom: 8px; text-align: left;"
+                        onclick="addLeadsToList(${list.id}, '${list.name}')">
+                    ${list.name} <span style="color: #888;">(${list.lead_count || 0} leads)</span>
+                </button>
+            `).join('');
+        }
+
+        async function addLeadsToList(listId, listName) {
+            try {
+                const response = await fetch(`/api/lead-lists/${listId}/leads`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lead_ids: Array.from(selectedLeadIds) })
+                });
+
+                if (response.ok) {
+                    closeAddToListModal();
+                    alert(`Added ${selectedLeadIds.size} lead(s) to "${listName}"`);
+                } else {
+                    alert('Failed to add leads to list');
+                }
+            } catch (error) {
+                console.error('Error adding leads to list:', error);
+                alert('Error adding leads to list');
+            }
         }
 
         function getStatusColor(status) {
@@ -5329,6 +5664,76 @@ async def delete_lead(lead_id: int):
         return {"status": "deleted"}
     except Exception as e:
         raise HTTPException(500, f"Failed to delete lead: {str(e)}")
+
+
+@app.post("/api/leads/bulk-delete")
+async def bulk_delete_leads(data: dict):
+    """Delete multiple leads at once"""
+    lead_ids = data.get("lead_ids", [])
+    if not lead_ids:
+        raise HTTPException(400, "No lead IDs provided")
+
+    try:
+        deleted_count = database.delete_leads_bulk(lead_ids)
+        return {"status": "deleted", "deleted_count": deleted_count}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to delete leads: {str(e)}")
+
+
+# =============================================================================
+# Lead Lists API
+# =============================================================================
+
+@app.get("/api/lead-lists")
+async def get_lead_lists():
+    """Get all lead lists"""
+    return database.get_lead_lists()
+
+
+@app.post("/api/lead-lists")
+async def create_lead_list(data: dict):
+    """Create a new lead list"""
+    name = data.get("name", "").strip()
+    if not name:
+        raise HTTPException(400, "List name is required")
+
+    description = data.get("description", "")
+
+    try:
+        list_id = database.create_lead_list(name, description)
+        return {"status": "created", "id": list_id}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to create list: {str(e)}")
+
+
+@app.delete("/api/lead-lists/{list_id}")
+async def delete_lead_list(list_id: int):
+    """Delete a lead list"""
+    try:
+        database.delete_lead_list(list_id)
+        return {"status": "deleted"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to delete list: {str(e)}")
+
+
+@app.get("/api/lead-lists/{list_id}/leads")
+async def get_list_leads(list_id: int):
+    """Get leads in a list"""
+    return database.get_list_leads(list_id)
+
+
+@app.post("/api/lead-lists/{list_id}/leads")
+async def add_leads_to_list(list_id: int, data: dict):
+    """Add leads to a list"""
+    lead_ids = data.get("lead_ids", [])
+    if not lead_ids:
+        raise HTTPException(400, "No lead IDs provided")
+
+    try:
+        database.add_leads_to_list(list_id, lead_ids)
+        return {"status": "added", "count": len(lead_ids)}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to add leads to list: {str(e)}")
 
 
 @app.get("/api/leads/{lead_id}/interactions")
