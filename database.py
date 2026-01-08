@@ -16,9 +16,10 @@ DB_PATH = Path(__file__).parent / "versabox.db"
 
 def get_db() -> sqlite3.Connection:
     """Get database connection with row factory"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")  # Wait up to 30 seconds for locks
     return conn
 
 
@@ -585,23 +586,30 @@ def update_lead(lead_id: int, data: dict) -> bool:
 
 
 def delete_lead(lead_id: int) -> bool:
-    """Delete a lead and its interactions"""
+    """Delete a lead and all its related data"""
     conn = get_db()
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    # Delete interactions first
-    cursor.execute("DELETE FROM interactions WHERE lead_id = ?", (lead_id,))
-    # Delete list memberships
-    cursor.execute("DELETE FROM lead_list_members WHERE lead_id = ?", (lead_id,))
-    # Delete enrollments
-    cursor.execute("DELETE FROM campaign_enrollments WHERE lead_id = ?", (lead_id,))
-    # Delete lead
-    cursor.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
-    success = cursor.rowcount > 0
+        # Delete from all tables with FK references to leads (order matters)
+        cursor.execute("DELETE FROM ai_logs WHERE lead_id = ?", (lead_id,))
+        cursor.execute("DELETE FROM messages WHERE lead_id = ?", (lead_id,))
+        cursor.execute("DELETE FROM conversations WHERE lead_id = ?", (lead_id,))
+        cursor.execute("DELETE FROM interactions WHERE lead_id = ?", (lead_id,))
+        cursor.execute("DELETE FROM lead_list_members WHERE lead_id = ?", (lead_id,))
+        cursor.execute("DELETE FROM step_executions WHERE enrollment_id IN (SELECT id FROM campaign_enrollments WHERE lead_id = ?)", (lead_id,))
+        cursor.execute("DELETE FROM campaign_enrollments WHERE lead_id = ?", (lead_id,))
+        # Delete the lead itself
+        cursor.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+        success = cursor.rowcount > 0
 
-    conn.commit()
-    conn.close()
-    return success
+        conn.commit()
+        return success
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def delete_leads_bulk(lead_ids: List[int]) -> int:
@@ -610,23 +618,29 @@ def delete_leads_bulk(lead_ids: List[int]) -> int:
         return 0
 
     conn = get_db()
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
+        placeholders = ','.join('?' * len(lead_ids))
 
-    placeholders = ','.join('?' * len(lead_ids))
+        # Delete from all tables with FK references to leads (order matters)
+        cursor.execute(f"DELETE FROM ai_logs WHERE lead_id IN ({placeholders})", lead_ids)
+        cursor.execute(f"DELETE FROM messages WHERE lead_id IN ({placeholders})", lead_ids)
+        cursor.execute(f"DELETE FROM conversations WHERE lead_id IN ({placeholders})", lead_ids)
+        cursor.execute(f"DELETE FROM interactions WHERE lead_id IN ({placeholders})", lead_ids)
+        cursor.execute(f"DELETE FROM lead_list_members WHERE lead_id IN ({placeholders})", lead_ids)
+        cursor.execute(f"DELETE FROM step_executions WHERE enrollment_id IN (SELECT id FROM campaign_enrollments WHERE lead_id IN ({placeholders}))", lead_ids)
+        cursor.execute(f"DELETE FROM campaign_enrollments WHERE lead_id IN ({placeholders})", lead_ids)
+        # Delete the leads themselves
+        cursor.execute(f"DELETE FROM leads WHERE id IN ({placeholders})", lead_ids)
+        deleted_count = cursor.rowcount
 
-    # Delete interactions first
-    cursor.execute(f"DELETE FROM interactions WHERE lead_id IN ({placeholders})", lead_ids)
-    # Delete list memberships
-    cursor.execute(f"DELETE FROM lead_list_members WHERE lead_id IN ({placeholders})", lead_ids)
-    # Delete enrollments
-    cursor.execute(f"DELETE FROM campaign_enrollments WHERE lead_id IN ({placeholders})", lead_ids)
-    # Delete leads
-    cursor.execute(f"DELETE FROM leads WHERE id IN ({placeholders})", lead_ids)
-    deleted_count = cursor.rowcount
-
-    conn.commit()
-    conn.close()
-    return deleted_count
+        conn.commit()
+        return deleted_count
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def search_leads(
