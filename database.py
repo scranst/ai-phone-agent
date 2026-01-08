@@ -1758,6 +1758,32 @@ def migrate_db():
                     pass
             break
 
+    # Check if lead_lists table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='lead_lists'")
+    if not cursor.fetchone():
+        print("Creating lead_lists and lead_list_members tables...")
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lead_lists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lead_list_members (
+            lead_list_id INTEGER,
+            lead_id INTEGER,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (lead_list_id, lead_id),
+            FOREIGN KEY (lead_list_id) REFERENCES lead_lists(id),
+            FOREIGN KEY (lead_id) REFERENCES leads(id)
+        )
+        """)
+        conn.commit()
+        print("lead_lists tables created!")
+
     # Check if settings table exists and migrate from JSON if needed
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
     if not cursor.fetchone():
