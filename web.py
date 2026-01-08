@@ -5565,10 +5565,8 @@ async def start_sms_monitor():
                     nonlocal modem
                     logger.info(f"SMS received from {sender}: {text}")
 
-                    # Reload settings to get current values
+                    # Get current settings (handler fetches fresh settings via property)
                     current_settings = load_settings()
-                    sms_handler.settings = current_settings  # Update handler settings
-
                     my_phone = current_settings.get("CALLBACK_NUMBER", "")
                     try:
                         database.save_message({
