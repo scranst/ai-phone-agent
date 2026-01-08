@@ -146,47 +146,56 @@ Keep responses SHORT - this is SMS."""
             model_id = "claude-opus-4-20250514"
 
         final_text = ""
+        tool_uses = []
+        tool_results = []
 
-        # Process all content blocks
+        # First pass: collect text and all tool uses
         for block in response.content:
             if block.type == "text":
                 final_text += block.text
             elif block.type == "tool_use":
-                # Execute the tool
-                tool_result = self._execute_tool(block.name, block.input)
+                tool_uses.append(block)
 
-                logger.info(f"Tool {block.name}: {json.dumps(tool_result)[:200]}")
+        # If no tool uses, return the text
+        if not tool_uses:
+            return final_text.strip() if final_text else "Done."
 
-                # Continue conversation with tool result
-                messages.append({"role": "assistant", "content": response.content})
-                messages.append({
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": json.dumps(tool_result)
-                    }]
-                })
+        # Execute ALL tools and collect results
+        for block in tool_uses:
+            tool_result = self._execute_tool(block.name, block.input)
+            logger.info(f"Tool {block.name}: {json.dumps(tool_result)[:200]}")
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": block.id,
+                "content": json.dumps(tool_result)
+            })
 
-                # Get next response using the same model
-                try:
-                    client = api_keys.get_anthropic_client()
-                    next_response = client.messages.create(
-                        model=model_id,
-                        max_tokens=1000,
-                        system=system_prompt,
-                        tools=ASSISTANT_TOOLS,
-                        messages=messages
-                    )
+        # Add assistant message with all tool uses
+        messages.append({"role": "assistant", "content": response.content})
 
-                    # Recursively handle (in case of more tool calls)
-                    return self._handle_llm_response(next_response, messages, system_prompt, model_id)
+        # Add user message with ALL tool results
+        messages.append({
+            "role": "user",
+            "content": tool_results
+        })
 
-                except Exception as e:
-                    logger.error(f"Error in tool follow-up: {e}")
-                    return f"Done, but had an error: {str(e)[:50]}"
+        # Get next response using the same model
+        try:
+            client = api_keys.get_anthropic_client()
+            next_response = client.messages.create(
+                model=model_id,
+                max_tokens=1000,
+                system=system_prompt,
+                tools=ASSISTANT_TOOLS,
+                messages=messages
+            )
 
-        return final_text.strip() if final_text else "Done."
+            # Recursively handle (in case of more tool calls)
+            return self._handle_llm_response(next_response, messages, system_prompt, model_id)
+
+        except Exception as e:
+            logger.error(f"Error in tool follow-up: {e}")
+            return f"Done, but had an error: {str(e)[:50]}"
 
     def _execute_tool(self, tool_name: str, tool_input: dict) -> dict:
         """Execute a tool and return the result"""
