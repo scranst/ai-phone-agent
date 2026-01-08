@@ -4474,17 +4474,7 @@ async def update_settings(settings: dict):
     merged = deep_merge(existing, settings)
     save_settings(merged)
 
-    # Hot-reload API keys if they were updated
-    if "api_keys" in settings:
-        # Reload conversation engine LLM
-        if preloaded_conversation and preloaded_conversation.llm:
-            preloaded_conversation.llm.reload_api_key()
-            logger.info("Conversation LLM API key hot-reloaded")
-
-        # Reload SMS AI handler
-        if sms_handler:
-            sms_handler.reload_api_key()
-            logger.info("SMS AI API key hot-reloaded")
+    # API keys are read fresh from settings on each API call - no reload needed
 
     return {"status": "saved"}
 

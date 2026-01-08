@@ -9,10 +9,8 @@ Uses multi-agent architecture for different call roles.
 import logging
 from typing import Optional
 from datetime import date, timedelta
-import anthropic
-import openai
 
-import config
+import api_keys
 from agents import get_agent_manager, Agent, ModelTier, MODEL_IDS
 
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ class LLMEngine:
         self,
         provider: str = "claude",  # "claude" or "openai"
         model: Optional[str] = None,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None  # Ignored - always reads from settings
     ):
         """
         Initialize LLM engine.
@@ -33,7 +31,7 @@ class LLMEngine:
         Args:
             provider: "claude" for Claude API, "openai" for OpenAI API
             model: Model to use (defaults based on provider)
-            api_key: API key (uses config if not provided)
+            api_key: Ignored - API keys are always read fresh from settings
         """
         self.provider = provider
         # Load settings to get agent configurations (tools, etc.)
@@ -49,16 +47,12 @@ class LLMEngine:
         self.current_agent: Optional[Agent] = None
 
         if provider == "openai":
-            self.api_key = api_key or config.OPENAI_API_KEY
             self.model = model or "gpt-4o-mini"
-            self.client = openai.OpenAI(api_key=self.api_key)
             logger.info(f"LLM engine initialized (provider=openai, model={self.model})")
         else:
             # Default to Claude
             self.provider = "claude"
-            self.api_key = api_key or config.ANTHROPIC_API_KEY
             self.model = model or "claude-3-5-haiku-latest"
-            self.client = anthropic.Anthropic(api_key=self.api_key)
             logger.info(f"LLM engine initialized (provider=claude, model={self.model})")
 
         self.system_prompt = ""
@@ -66,35 +60,18 @@ class LLMEngine:
         self.is_main_user_mode = False  # Whether tools are enabled
         self.has_calendar_tools = False  # Whether calendar tools are enabled
 
+    @property
+    def client(self):
+        """Get a fresh API client with current key from settings"""
+        if self.provider == "openai":
+            return api_keys.get_openai_client()
+        else:
+            return api_keys.get_anthropic_client()
+
     def set_model(self, model_id: str):
         """Change the model being used"""
         self.model = model_id
         logger.info(f"LLM model changed to: {model_id}")
-
-    def reload_api_key(self):
-        """Hot-reload API key from settings without restarting service"""
-        import json
-        import os
-        try:
-            settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
-            with open(settings_path) as f:
-                settings = json.load(f)
-            api_keys = settings.get("api_keys", {})
-
-            if self.provider == "openai":
-                new_key = api_keys.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "")
-                if new_key and new_key != self.api_key:
-                    self.api_key = new_key
-                    self.client = openai.OpenAI(api_key=self.api_key)
-                    logger.info("OpenAI API key hot-reloaded")
-            else:
-                new_key = api_keys.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")
-                if new_key and new_key != self.api_key:
-                    self.api_key = new_key
-                    self.client = anthropic.Anthropic(api_key=self.api_key)
-                    logger.info("Anthropic API key hot-reloaded")
-        except Exception as e:
-            logger.error(f"Failed to reload API key: {e}")
 
     def generate(self, prompt: str, max_tokens: int = 200) -> str:
         """
