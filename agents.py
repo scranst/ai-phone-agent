@@ -305,13 +305,14 @@ class AgentManager:
         return prompt
 
 
-# Singleton instance
-_agent_manager: Optional[AgentManager] = None
-
-
 def get_agent_manager(settings: dict = None) -> AgentManager:
-    """Get or create agent manager singleton"""
-    global _agent_manager
-    if _agent_manager is None or settings is not None:
-        _agent_manager = AgentManager(settings)
-    return _agent_manager
+    """
+    Get agent manager with fresh settings.
+
+    Always creates a new instance to ensure settings are read fresh.
+    If settings not provided, reads from settings.json.
+    """
+    if settings is None:
+        import api_keys
+        settings = api_keys.get_settings()
+    return AgentManager(settings)

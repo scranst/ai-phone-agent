@@ -34,16 +34,6 @@ class LLMEngine:
             api_key: Ignored - API keys are always read fresh from settings
         """
         self.provider = provider
-        # Load settings to get agent configurations (tools, etc.)
-        import json
-        import os
-        try:
-            settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
-            with open(settings_path) as f:
-                settings = json.load(f)
-        except:
-            settings = None
-        self.agent_manager = get_agent_manager(settings)
         self.current_agent: Optional[Agent] = None
 
         if provider == "openai":
@@ -67,6 +57,11 @@ class LLMEngine:
             return api_keys.get_openai_client()
         else:
             return api_keys.get_anthropic_client()
+
+    @property
+    def agent_manager(self):
+        """Get agent manager with fresh settings"""
+        return get_agent_manager()
 
     def set_model(self, model_id: str):
         """Change the model being used"""

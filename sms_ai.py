@@ -30,15 +30,21 @@ class SMSAIHandler:
 
     def __init__(self, primary_number: str, settings: dict = None):
         self.primary_number = self._normalize_phone(primary_number)
-        self.settings = settings or {}
         self.pending_calls = []  # Queue of calls to make
 
         # Callbacks for actions that need external resources
         self._send_sms_callback: Optional[Callable] = None
         self._queue_call_callback: Optional[Callable] = None
 
-        # Initialize agent manager
-        self.agent_manager = get_agent_manager(settings)
+    @property
+    def agent_manager(self):
+        """Get agent manager with fresh settings"""
+        return get_agent_manager()
+
+    @property
+    def settings(self):
+        """Get fresh settings"""
+        return api_keys.get_settings()
 
     def _normalize_phone(self, phone: str) -> str:
         """Normalize phone number to digits only"""
