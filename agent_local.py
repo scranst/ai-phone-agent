@@ -23,6 +23,31 @@ from audio_router_sim7600 import AudioRouterSIM7600
 from conversation_local import LocalConversationEngine, ConversationConfig, ConversationState
 
 import config
+
+
+def split_sms(text: str, max_len: int = 155) -> list:
+    """Split a long message into SMS-sized chunks, trying to break at word boundaries."""
+    if len(text) <= max_len:
+        return [text]
+
+    chunks = []
+    while text:
+        if len(text) <= max_len:
+            chunks.append(text)
+            break
+
+        # Find last space before max_len
+        break_point = text.rfind(' ', 0, max_len)
+        if break_point == -1:
+            # No space found, hard break
+            break_point = max_len
+
+        chunks.append(text[:break_point].strip())
+        text = text[break_point:].strip()
+
+    return chunks
+
+
 import database
 
 logger = logging.getLogger(__name__)
@@ -435,27 +460,30 @@ class PhoneAgentLocal:
                 logger.warning("No callback number configured, skipping SMS")
                 return
 
-            # Build SMS message (keep it under 160 chars if possible)
+            # Build SMS message - use full summary, will split if needed
             if result.success:
-                summary = result.summary[:120] if result.summary else "Call completed successfully"
+                summary = result.summary if result.summary else "Call completed successfully"
                 message = f"AI Call Summary: {summary}"
             else:
-                message = f"AI Call to {called_phone} ended. {result.summary[:100] if result.summary else 'No summary available'}"
+                message = f"AI Call to {called_phone} ended. {result.summary if result.summary else 'No summary available'}"
 
-            # Truncate if too long
-            if len(message) > 160:
-                message = message[:157] + "..."
+            # Split into multiple SMS if too long
+            chunks = split_sms(message)
+            logger.info(f"Sending SMS summary to {callback_number} ({len(chunks)} message(s))")
 
-            # Send the SMS
-            logger.info(f"Sending SMS summary to {callback_number}")
-            success = self.modem.send_sms(callback_number, message)
+            all_sent = True
+            for i, chunk in enumerate(chunks):
+                success = self.modem.send_sms(callback_number, chunk)
+                if not success:
+                    logger.error(f"Failed to send SMS chunk {i+1}/{len(chunks)}")
+                    all_sent = False
+                elif len(chunks) > 1:
+                    time.sleep(0.5)  # Brief pause between messages
 
-            if success:
+            if all_sent:
                 logger.info("SMS summary sent successfully")
-                # Save to database for conversation history
+                # Save to database for conversation history (save full message)
                 try:
-                    import database
-                    from datetime import datetime
                     database.save_message({
                         "channel": "sms",
                         "direction": "outbound",
@@ -469,7 +497,7 @@ class PhoneAgentLocal:
                 except Exception as db_err:
                     logger.error(f"Failed to save SMS to database: {db_err}")
             else:
-                logger.error("Failed to send SMS summary")
+                logger.error("Failed to send some SMS chunks")
 
         except Exception as e:
             logger.error(f"Error sending SMS summary: {e}")
