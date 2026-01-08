@@ -4711,6 +4711,21 @@ async def start_sms_monitor():
                                     if len(chunks) > 1:
                                         time_module.sleep(0.5)  # Brief pause between messages
                                 logger.info(f"Sent {len(chunks)} message(s) to main user")
+
+                                # Save outbound message to database for conversation history
+                                try:
+                                    database.save_message({
+                                        "channel": "sms",
+                                        "direction": "outbound",
+                                        "from_address": my_phone,
+                                        "to_address": sender,
+                                        "body": response,
+                                        "status": "sent",
+                                        "provider": "modem",
+                                        "sent_at": datetime.now().isoformat()
+                                    })
+                                except Exception as e:
+                                    logger.error(f"Failed to save outbound SMS: {e}")
                             else:
                                 # Schedule with delay for non-main users (more human-like)
                                 autopilot = current_settings.get("autopilot", {})

@@ -452,6 +452,22 @@ class PhoneAgentLocal:
 
             if success:
                 logger.info("SMS summary sent successfully")
+                # Save to database for conversation history
+                try:
+                    import database
+                    from datetime import datetime
+                    database.save_message({
+                        "channel": "sms",
+                        "direction": "outbound",
+                        "from_address": "",  # Our modem number
+                        "to_address": callback_number,
+                        "body": message,
+                        "status": "sent",
+                        "provider": "modem",
+                        "sent_at": datetime.now().isoformat()
+                    })
+                except Exception as db_err:
+                    logger.error(f"Failed to save SMS to database: {db_err}")
             else:
                 logger.error("Failed to send SMS summary")
 
